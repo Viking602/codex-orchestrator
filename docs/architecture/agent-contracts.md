@@ -1,0 +1,48 @@
+# Agent Contracts
+
+## Parent Agent Contract
+
+The parent orchestration layer owns:
+
+- category resolution
+- role dispatch
+- runtime state transitions
+- plan file synchronization
+- review gate progression
+- final task acceptance
+
+## Implementer Contract
+
+The implementer owns:
+
+- bounded execution for a single top-level task
+- creation of atomic execution substeps
+- incremental progress reporting
+- local verification for owned changes
+
+The implementer must not:
+
+- mark the top-level task complete
+- self-approve review gates
+- widen scope beyond assigned files and acceptance criteria
+
+## Reviewer Contract
+
+The reviewer owns:
+
+- spec compliance review or quality review
+- evidence-based findings
+- explicit pass/fail output
+
+The reviewer must not:
+
+- reuse the implementer identity for the same task
+- modify production code in the same pass
+- mark plan tasks complete
+
+## Incremental Todo Rule
+
+- Child execution substeps must be reported one-by-one.
+- Parent plan synchronization must happen after each completed step.
+- End-of-task batch completion is invalid and should fail review.
+

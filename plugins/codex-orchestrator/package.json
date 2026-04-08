@@ -1,0 +1,11 @@
+{
+  "name": "codex-orchestrator-plugin",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Codex-native orchestrator plugin with file-backed planning, runtime state, review gates, and plan synchronization.",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "serve": "node --experimental-strip-types src/server.ts"
+  }
+}

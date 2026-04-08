@@ -1,0 +1,46 @@
+{
+  "name": "codex-orchestrator",
+  "version": "0.1.0",
+  "description": "Codex-native orchestrator plugin for file-backed design, planning, execution tracking, review gates, and document sync.",
+  "author": {
+    "name": "Viking",
+    "email": "local@example.invalid",
+    "url": "https://example.invalid/codex-orchestrator"
+  },
+  "homepage": "https://example.invalid/codex-orchestrator",
+  "repository": "https://example.invalid/codex-orchestrator.git",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "orchestrator",
+    "mcp",
+    "planning",
+    "review-gates"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex Orchestrator",
+    "shortDescription": "File-backed orchestration for design, plans, execution, and review gates",
+    "longDescription": "Codex Orchestrator makes design specs, implementation plans, category routing, runtime state, review gates, and plan synchronization first-class workflow artifacts so long-running work does not drift away from the repository.",
+    "developerName": "Viking",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://example.invalid/codex-orchestrator",
+    "privacyPolicyURL": "https://example.invalid/privacy",
+    "termsOfServiceURL": "https://example.invalid/terms",
+    "defaultPrompt": [
+      "Use Codex Orchestrator to turn this request into a spec, plan, and bounded execution flow.",
+      "Review the active implementation plan, sync task progress, and keep repository docs aligned.",
+      "Route the next task by category, record runtime state, and enforce review gates before acceptance."
+    ],
+    "brandColor": "#1C4D8C",
+    "composerIcon": "./assets/icon-small.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": []
+  }
+}

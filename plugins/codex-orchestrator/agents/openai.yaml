@@ -1,0 +1,10 @@
+interface:
+  display_name: "Codex Orchestrator"
+  short_description: "File-backed orchestration for specs, plans, runtime state, and review gates."
+  icon_small: "./assets/icon-small.svg"
+  icon_large: "./assets/logo.svg"
+  default_prompt: "Use Codex Orchestrator to create and maintain a spec, an implementation plan, runtime orchestration state, and review gates while executing bounded tasks."
+
+note: |
+  This plugin relies on Codex native subagents for execution and uses the plugin-local MCP server as the control-plane and state-plane.
+
