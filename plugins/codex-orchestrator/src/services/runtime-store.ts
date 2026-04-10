@@ -1,7 +1,8 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { PlanStateRecord, ReviewStatus, TaskStateRecord, TaskStatus } from "../types.ts";
+import { randomUUID } from "node:crypto";
+import type { PlanStateRecord, ReviewStatus, TaskStateRecord, TaskStatus, WriteLeaseRecord } from "../types.ts";
 
 export class RuntimeStore {
   private readonly db: DatabaseSync;
@@ -62,6 +63,17 @@ export class RuntimeStore {
         result TEXT,
         summary TEXT,
         created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS write_lease (
+        lease_id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL,
+        task_id TEXT NOT NULL,
+        holder_agent_id TEXT NOT NULL,
+        scope_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        released_at TEXT
       );
     `);
   }
@@ -194,6 +206,32 @@ export class RuntimeStore {
     );
   }
 
+  listEvidenceForTask(planId: string, taskId: string): Array<{
+    kind: string;
+    command: string | null;
+    result: string | null;
+    summary: string | null;
+    createdAt: string;
+  }> {
+    return this.db.prepare(`
+      SELECT
+        kind,
+        command,
+        result,
+        summary,
+        created_at AS createdAt
+      FROM verification_evidence
+      WHERE plan_id = ? AND task_id = ?
+      ORDER BY created_at ASC
+    `).all(planId, taskId) as Array<{
+      kind: string;
+      command: string | null;
+      result: string | null;
+      summary: string | null;
+      createdAt: string;
+    }>;
+  }
+
   getPlanState(planId: string): PlanStateRecord | undefined {
     const row = this.db.prepare(`
       SELECT
@@ -254,6 +292,69 @@ export class RuntimeStore {
     `).all(threshold) as TaskStateRecord[];
   }
 
+  acquireWriteLease(input: {
+    planId: string;
+    taskId: string;
+    holderAgentId: string;
+    scope: string[];
+  }): WriteLeaseRecord {
+    const existing = this.getActiveWriteLease(input.planId, input.taskId);
+    if (existing) {
+      throw new Error(`Active write lease already exists for ${input.taskId}`);
+    }
+    const leaseId = `lease_${randomUUID()}`;
+    const createdAt = new Date().toISOString();
+    const scopeJson = JSON.stringify(input.scope);
+    this.db.prepare(`
+      INSERT INTO write_lease (lease_id, plan_id, task_id, holder_agent_id, scope_json, status, created_at, released_at)
+      VALUES (?, ?, ?, ?, ?, 'active', ?, NULL)
+    `).run(leaseId, input.planId, input.taskId, input.holderAgentId, scopeJson, createdAt);
+    return this.requireWriteLease(leaseId);
+  }
+
+  releaseWriteLease(leaseId: string): WriteLeaseRecord {
+    const releasedAt = new Date().toISOString();
+    this.db.prepare(`
+      UPDATE write_lease
+      SET status = 'released', released_at = ?
+      WHERE lease_id = ? AND status = 'active'
+    `).run(releasedAt, leaseId);
+    return this.requireWriteLease(leaseId);
+  }
+
+  getWriteLease(leaseId: string): WriteLeaseRecord | undefined {
+    return this.db.prepare(`
+      SELECT
+        lease_id AS leaseId,
+        plan_id AS planId,
+        task_id AS taskId,
+        holder_agent_id AS holderAgentId,
+        scope_json AS scopeJson,
+        status,
+        created_at AS createdAt,
+        released_at AS releasedAt
+      FROM write_lease WHERE lease_id = ?
+    `).get(leaseId) as WriteLeaseRecord | undefined;
+  }
+
+  getActiveWriteLease(planId: string, taskId: string): WriteLeaseRecord | undefined {
+    return this.db.prepare(`
+      SELECT
+        lease_id AS leaseId,
+        plan_id AS planId,
+        task_id AS taskId,
+        holder_agent_id AS holderAgentId,
+        scope_json AS scopeJson,
+        status,
+        created_at AS createdAt,
+        released_at AS releasedAt
+      FROM write_lease
+      WHERE plan_id = ? AND task_id = ? AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(planId, taskId) as WriteLeaseRecord | undefined;
+  }
+
   private requirePlanState(planId: string): PlanStateRecord {
     const row = this.getPlanState(planId);
     if (!row) throw new Error(`Plan state missing after upsert: ${planId}`);
@@ -263,6 +364,12 @@ export class RuntimeStore {
   private requireTaskState(planId: string, taskId: string): TaskStateRecord {
     const row = this.getTaskState(planId, taskId);
     if (!row) throw new Error(`Task state missing after upsert: ${planId}/${taskId}`);
+    return row;
+  }
+
+  private requireWriteLease(leaseId: string): WriteLeaseRecord {
+    const row = this.getWriteLease(leaseId);
+    if (!row) throw new Error(`Write lease missing after update: ${leaseId}`);
     return row;
   }
 }

@@ -4,6 +4,7 @@ import { checkDocDrift } from "../services/doc-drift.ts";
 import { PlanDocument } from "../services/plan-document.ts";
 import { RuntimeStore } from "../services/runtime-store.ts";
 import type { ReviewStatus, TaskStatus } from "../types.ts";
+import type { CategoryDefinition, PlanTask, TaskStateRecord } from "../types.ts";
 
 export interface ToolDefinition {
   name: string;
@@ -140,6 +141,12 @@ export function createTools(deps: ToolDeps): ToolDefinition[] {
         const category = categories.get(categoryId);
         if (!category) throw new Error(`Unknown category: ${categoryId}`);
         const nextStatus = (optionalString(args, "taskStatus") ?? (categoryId === "review" ? "running_quality_review" : "running_impl")) as TaskStatus;
+        if (category.writePolicy === "lease-required" && nextStatus === "running_impl") {
+          const activeLease = runtimeStore.getActiveWriteLease(planId, taskId);
+          if (!activeLease) {
+            throw new Error(`Cannot start ${taskId}: write lease required for category ${categoryId}`);
+          }
+        }
         runtimeStore.upsertPlanState({
           planId,
           planPath,
@@ -165,6 +172,109 @@ export function createTools(deps: ToolDeps): ToolDefinition[] {
           assignedAgent: assignedAgent ?? "local-parent",
         });
         return result({ plan_id: planId, task_id: taskId, task_status: nextStatus });
+      },
+    },
+    {
+      name: "orchestrator_acquire_write_lease",
+      description: "Acquire an active write lease for a lease-required task.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          planPath: { type: "string" },
+          taskId: { type: "string" },
+          holderAgentId: { type: "string" },
+          scope: {
+            type: "array",
+            items: { type: "string" },
+          },
+        },
+        required: ["planPath", "taskId", "holderAgentId", "scope"],
+      },
+      handler: async (args) => {
+        const planPath = requireString(args, "planPath");
+        const taskId = requireString(args, "taskId");
+        const holderAgentId = requireString(args, "holderAgentId");
+        const scope = requireStringArray(args, "scope");
+        const planId = planIdFromPath(planPath);
+        const lease = runtimeStore.acquireWriteLease({
+          planId,
+          taskId,
+          holderAgentId,
+          scope,
+        });
+        const current = runtimeStore.getTaskState(planId, taskId);
+        if (current) {
+          runtimeStore.upsertTaskState({
+            ...current,
+            planId,
+            taskId,
+            categoryId: current.categoryId,
+            status: current.status,
+            activeStepLabel: current.activeStepLabel,
+            assignedRole: current.assignedRole,
+            agentId: current.agentId,
+            writeLeaseId: lease.leaseId,
+            specReviewStatus: current.specReviewStatus,
+            qualityReviewStatus: current.qualityReviewStatus,
+            retryCount: current.retryCount,
+            blockerType: null,
+            blockerMessage: null,
+          });
+        }
+        return result({
+          plan_id: planId,
+          task_id: taskId,
+          lease_id: lease.leaseId,
+          holder_agent_id: lease.holderAgentId,
+          scope,
+          status: lease.status,
+        });
+      },
+    },
+    {
+      name: "orchestrator_release_write_lease",
+      description: "Release an active write lease for a task.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          planPath: { type: "string" },
+          taskId: { type: "string" },
+          leaseId: { type: "string" },
+        },
+        required: ["planPath", "taskId", "leaseId"],
+      },
+      handler: async (args) => {
+        const planPath = requireString(args, "planPath");
+        const taskId = requireString(args, "taskId");
+        const leaseId = requireString(args, "leaseId");
+        const planId = planIdFromPath(planPath);
+        const lease = runtimeStore.releaseWriteLease(leaseId);
+        const current = runtimeStore.getTaskState(planId, taskId);
+        if (current) {
+          runtimeStore.upsertTaskState({
+            ...current,
+            planId,
+            taskId,
+            categoryId: current.categoryId,
+            status: current.status,
+            activeStepLabel: current.activeStepLabel,
+            assignedRole: current.assignedRole,
+            agentId: current.agentId,
+            writeLeaseId: null,
+            specReviewStatus: current.specReviewStatus,
+            qualityReviewStatus: current.qualityReviewStatus,
+            retryCount: current.retryCount,
+            blockerType: current.blockerType,
+            blockerMessage: current.blockerMessage,
+          });
+        }
+        return result({
+          plan_id: planId,
+          task_id: taskId,
+          lease_id: lease.leaseId,
+          status: lease.status,
+          released_at: lease.releasedAt,
+        });
       },
     },
     {
@@ -463,12 +573,372 @@ export function createTools(deps: ToolDeps): ToolDefinition[] {
             status: task.status,
             active_step: task.activeStepLabel,
             agent_id: task.agentId,
-            suggested_action: task.status === "spec_failed" || task.status === "quality_failed"
-              ? "return_to_implementer"
-              : "continue_same_agent",
+            suggested_action: deriveSuggestedAction({
+              taskState: task,
+              category: categories.get(task.categoryId),
+              activeLeasePresent: task.writeLeaseId !== null || runtimeStore.getActiveWriteLease(task.planId, task.taskId) !== undefined,
+            }),
           })),
         });
       },
     },
+    {
+      name: "orchestrator_next_action",
+      description: "Derive the next deterministic parent-agent action from the active plan and runtime state.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          planPath: { type: "string" },
+        },
+        required: ["planPath"],
+      },
+      handler: async (args) => {
+        const planPath = requireString(args, "planPath");
+        const plan = new PlanDocument(planPath);
+        const planId = planIdFromPath(planPath);
+        const planState = plan.readPlanState();
+        const nextTask = planState.tasks.find((task) => !task.todoChecked);
+        if (!nextTask) {
+          const openAcceptance = plan.uncheckedFinalAcceptanceItems();
+          if (openAcceptance.length > 0) {
+            return result({
+              plan_id: planId,
+              action: "complete_final_acceptance",
+              requires_write_lease: false,
+              reason: `All top-level tasks are accepted, but final acceptance still has open items: ${openAcceptance.join(", ")}.`,
+              open_acceptance_items: openAcceptance,
+            });
+          }
+          return result({
+            plan_id: planId,
+            action: "complete_plan",
+            reason: "All top-level tasks are already accepted.",
+          });
+        }
+        const taskState = runtimeStore.getTaskState(planId, nextTask.id);
+        const category = categories.get(nextTask.category);
+        const activeLease = runtimeStore.getActiveWriteLease(planId, nextTask.id);
+        const action = deriveNextAction(
+          nextTask,
+          taskState,
+          category,
+          activeLease !== undefined,
+          plan.uncheckedFinalAcceptanceItems(),
+        );
+        return result({
+          plan_id: planId,
+          task_id: nextTask.id,
+          action: action.action,
+          required_role: action.requiredRole,
+          requires_write_lease: action.requiresWriteLease,
+          reason: action.reason,
+        });
+      },
+    },
+    {
+      name: "orchestrator_question_gate",
+      description: "Decide whether a user-facing question is allowed or whether the parent should continue without asking.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          questionCategory: { type: "string" },
+          userExplicitlyRequested: { type: "boolean" },
+          reason: { type: "string" },
+        },
+        required: ["questionCategory"],
+      },
+      handler: async (args) => {
+        const questionCategory = requireString(args, "questionCategory");
+        const userExplicitlyRequested = args.userExplicitlyRequested === true;
+        const reason = optionalString(args, "reason") ?? "";
+        const hardBlockers = new Set(["identity", "credential", "destructive", "conflict"]);
+
+        if (questionCategory === "optional_expansion" && !userExplicitlyRequested) {
+          return result({
+            ask_user: false,
+            blocker_type: "none",
+            allowed_to_expand: false,
+            recommended_action: "skip_optional_expansion",
+            reason: reason || "Optional expansion was not explicitly requested by the user.",
+          });
+        }
+
+        if (hardBlockers.has(questionCategory)) {
+          return result({
+            ask_user: true,
+            blocker_type: questionCategory,
+            allowed_to_expand: false,
+            recommended_action: "ask_user",
+            reason: reason || `A hard blocker of type ${questionCategory} requires user resolution.`,
+          });
+        }
+
+        if (questionCategory === "system") {
+          return result({
+            ask_user: false,
+            blocker_type: "system",
+            allowed_to_expand: false,
+            recommended_action: "retry_or_report",
+            reason: reason || "System-level issues should be retried or reported instead of turned into user questions.",
+          });
+        }
+
+        return result({
+          ask_user: false,
+          blocker_type: "none",
+          allowed_to_expand: userExplicitlyRequested,
+          recommended_action: userExplicitlyRequested ? "execute_requested_scope" : "record_assumption_and_continue",
+          reason: reason || "No hard blocker requires a user-facing question.",
+        });
+      },
+    },
+    {
+      name: "orchestrator_assess_subagent_completion",
+      description: "Assess whether child output is sufficient for review, repair, acceptance, or more implementation.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          planPath: { type: "string" },
+          taskId: { type: "string" },
+        },
+        required: ["planPath", "taskId"],
+      },
+      handler: async (args) => {
+        const planPath = requireString(args, "planPath");
+        const taskId = requireString(args, "taskId");
+        const plan = new PlanDocument(planPath);
+        const planId = planIdFromPath(planPath);
+        const assessment = assessSubagentCompletion({
+          plan,
+          planId,
+          taskId,
+          runtimeStore,
+        });
+        return result({
+          task_id: taskId,
+          implementation_complete: assessment.implementationComplete,
+          missing_steps: assessment.missingSteps,
+          missing_evidence: assessment.missingEvidence,
+          next_required_stage: assessment.nextRequiredStage,
+          repair_role: assessment.repairRole,
+          can_accept: assessment.canAccept,
+        });
+      },
+    },
+    {
+      name: "orchestrator_completion_guard",
+      description: "Fail closed when the parent tries to end work before plan completion reaches 100 percent.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          planPath: { type: "string" },
+        },
+        required: ["planPath"],
+      },
+      handler: async (args) => {
+        const planPath = requireString(args, "planPath");
+        const plan = new PlanDocument(planPath);
+        const planState = plan.readPlanState();
+        const openTasks = planState.tasks.filter((task) => !task.todoChecked).map((task) => task.id);
+        const openAcceptanceItems = plan.uncheckedFinalAcceptanceItems();
+        const canFinish = openTasks.length === 0 && openAcceptanceItems.length === 0;
+        return result({
+          can_finish: canFinish,
+          open_tasks: openTasks,
+          open_acceptance_items: openAcceptanceItems,
+          blocking_reason: canFinish
+            ? "Plan completion is at 100 percent."
+            : `Open tasks or final acceptance items remain: ${[...openTasks, ...openAcceptanceItems].join(", ")}`,
+        });
+      },
+    },
   ];
+}
+
+function deriveSuggestedAction(input: {
+  taskState: TaskStateRecord;
+  category: CategoryDefinition | undefined;
+  activeLeasePresent: boolean;
+}): string {
+  const { taskState, category, activeLeasePresent } = input;
+  if (category?.writePolicy === "lease-required" && !activeLeasePresent) {
+    return "acquire_write_lease";
+  }
+  if (taskState.status === "spec_failed" || taskState.status === "quality_failed") {
+    return "return_to_implementer";
+  }
+  if (taskState.status === "running_quality_review" || taskState.status === "running_spec_review") {
+    return "re-run_review";
+  }
+  if (taskState.status === "blocked") {
+    return "mark_blocked";
+  }
+  return "continue_same_agent";
+}
+
+function assessSubagentCompletion(input: {
+  plan: PlanDocument;
+  planId: string;
+  taskId: string;
+  runtimeStore: RuntimeStore;
+}): {
+  implementationComplete: boolean;
+  missingSteps: string[];
+  missingEvidence: boolean;
+  nextRequiredStage: string;
+  repairRole?: string;
+  canAccept: boolean;
+} {
+  const { plan, planId, taskId, runtimeStore } = input;
+  const planState = plan.readPlanState();
+  const planTask = planState.tasks.find((task) => task.id === taskId);
+  if (!planTask) throw new Error(`Task not found in plan: ${taskId}`);
+  const taskState = runtimeStore.getTaskState(planId, taskId);
+  const evidence = runtimeStore.listEvidenceForTask(planId, taskId);
+  const missingSteps = planTask.steps.filter((step) => !step.checked).map((step) => step.label);
+  const missingEvidence = evidence.length === 0;
+  const implementationComplete = missingSteps.length === 0
+    && taskState?.status !== "blocked"
+    && taskState?.status !== "cancelled";
+
+  let nextRequiredStage = "implementation";
+  let repairRole: string | undefined;
+
+  if (!implementationComplete) {
+    nextRequiredStage = "implementation";
+    repairRole = planTask.ownerRole;
+  } else if (missingEvidence) {
+    nextRequiredStage = "implementation_evidence";
+    repairRole = planTask.ownerRole;
+  } else if (planTask.specReviewStatus !== "pass") {
+    nextRequiredStage = planTask.specReviewStatus === "fail" ? "repair" : "spec_review";
+    repairRole = planTask.specReviewStatus === "fail" ? planTask.ownerRole : "harness-evaluator";
+  } else if (planTask.qualityReviewStatus !== "pass") {
+    nextRequiredStage = planTask.qualityReviewStatus === "fail" ? "repair" : "quality_review";
+    repairRole = planTask.qualityReviewStatus === "fail" ? planTask.ownerRole : "harness-evaluator";
+  } else if (planTask.todoChecked) {
+    nextRequiredStage = "done";
+  } else {
+    nextRequiredStage = "accept";
+  }
+
+  const canAccept = implementationComplete
+    && !missingEvidence
+    && planTask.specReviewStatus === "pass"
+    && planTask.qualityReviewStatus === "pass";
+
+  return {
+    implementationComplete,
+    missingSteps,
+    missingEvidence,
+    nextRequiredStage,
+    repairRole,
+    canAccept,
+  };
+}
+
+function deriveNextAction(
+  planTask: PlanTask,
+  taskState: TaskStateRecord | undefined,
+  category: CategoryDefinition | undefined,
+  activeLeasePresent: boolean,
+  finalAcceptanceOpen: string[],
+): {
+  action: string;
+  requiredRole?: string;
+  requiresWriteLease: boolean;
+  reason: string;
+} {
+  const requiresWriteLease = category?.writePolicy === "lease-required";
+  if (requiresWriteLease && !activeLeasePresent) {
+    return {
+      action: "acquire_write_lease",
+      requiredRole: planTask.ownerRole,
+      requiresWriteLease: true,
+      reason: `Task ${planTask.id} belongs to a lease-required category and has no active lease.`,
+    };
+  }
+
+  if (taskState?.status === "impl_done" && (planTask.specReviewStatus === "pending" || planTask.specReviewStatus === "fail")) {
+    return {
+      action: planTask.specReviewStatus === "fail" ? "repair_and_re_review" : "run_spec_review",
+      requiredRole: planTask.specReviewStatus === "fail" ? planTask.ownerRole : "harness-evaluator",
+      requiresWriteLease,
+      reason: planTask.specReviewStatus === "fail"
+        ? `Task ${planTask.id} failed spec review and must return to implementation before review repeats.`
+        : `Task ${planTask.id} needs spec review before it can continue.`,
+    };
+  }
+
+  if (taskState?.status === "impl_done" && planTask.specReviewStatus === "pass" && (planTask.qualityReviewStatus === "pending" || planTask.qualityReviewStatus === "fail")) {
+    return {
+      action: planTask.qualityReviewStatus === "fail" ? "repair_and_re_review" : "run_quality_review",
+      requiredRole: planTask.qualityReviewStatus === "fail" ? planTask.ownerRole : "harness-evaluator",
+      requiresWriteLease,
+      reason: planTask.qualityReviewStatus === "fail"
+        ? `Task ${planTask.id} failed quality review and must return to implementation before review repeats.`
+        : `Task ${planTask.id} needs quality review before it can be accepted.`,
+    };
+  }
+
+  if (taskState?.status === "spec_failed" || taskState?.status === "quality_failed") {
+    return {
+      action: "return_to_implementer",
+      requiredRole: taskState.assignedRole ?? planTask.ownerRole,
+      requiresWriteLease,
+      reason: `Task ${planTask.id} failed a review gate and must return to implementation.`,
+    };
+  }
+
+  if (planTask.specReviewStatus === "pass" && planTask.qualityReviewStatus === "pass" && planTask.steps.every((step) => step.checked)) {
+    return {
+      action: "accept_task",
+      requiredRole: undefined,
+      requiresWriteLease,
+      reason: `Task ${planTask.id} has all steps checked and both review gates passed.`,
+    };
+  }
+
+  if (planTask.steps.every((step) => step.checked) && planTask.specReviewStatus === "pending") {
+    return {
+      action: "run_spec_review",
+      requiredRole: "harness-evaluator",
+      requiresWriteLease,
+      reason: `Task ${planTask.id} has completed implementation steps and now needs spec review.`,
+    };
+  }
+
+  if (planTask.steps.every((step) => step.checked) && planTask.specReviewStatus === "pass" && planTask.qualityReviewStatus === "pending") {
+    return {
+      action: "run_quality_review",
+      requiredRole: "harness-evaluator",
+      requiresWriteLease,
+      reason: `Task ${planTask.id} passed spec review and now needs quality review.`,
+    };
+  }
+
+  if (planTask.todoChecked && finalAcceptanceOpen.length > 0) {
+    return {
+      action: "complete_final_acceptance",
+      requiredRole: undefined,
+      requiresWriteLease: false,
+      reason: `All top-level tasks are accepted, but final acceptance still has open items: ${finalAcceptanceOpen.join(", ")}.`,
+    };
+  }
+
+  if (taskState?.status === "running_impl") {
+    return {
+      action: "continue_same_agent",
+      requiredRole: taskState.assignedRole ?? planTask.ownerRole,
+      requiresWriteLease,
+      reason: `Task ${planTask.id} is already in implementation progress.`,
+    };
+  }
+
+  return {
+    action: "dispatch_task",
+    requiredRole: planTask.ownerRole,
+    requiresWriteLease,
+    reason: `Task ${planTask.id} is the next incomplete top-level task in the plan.`,
+  };
 }

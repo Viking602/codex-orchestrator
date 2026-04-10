@@ -46,9 +46,16 @@ export interface PlanStep {
   checked: boolean;
 }
 
+export interface FinalAcceptanceItem {
+  text: string;
+  checked: boolean;
+}
+
 export interface PlanTask {
   id: string;
   title: string;
+  category: string;
+  ownerRole: string;
   taskStatus: string;
   currentStep: string;
   specReviewStatus: ReviewStatus | string;
@@ -56,6 +63,17 @@ export interface PlanTask {
   assignedAgent: string;
   todoChecked: boolean;
   steps: PlanStep[];
+}
+
+export interface WriteLeaseRecord {
+  leaseId: string;
+  planId: string;
+  taskId: string;
+  holderAgentId: string;
+  scopeJson: string;
+  status: "active" | "released";
+  createdAt: string;
+  releasedAt: string | null;
 }
 
 export interface TaskStateRecord {
@@ -84,4 +102,3 @@ export interface PlanStateRecord {
   lastReviewResult: string | null;
   updatedAt: string;
 }
-

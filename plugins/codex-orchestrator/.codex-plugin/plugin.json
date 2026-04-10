@@ -4,11 +4,11 @@
   "description": "Codex-native orchestrator plugin for file-backed design, planning, execution tracking, review gates, and document sync.",
   "author": {
     "name": "Viking",
-    "email": "local@example.invalid",
-    "url": "https://example.invalid/codex-orchestrator"
+    "email": "chen17090314747@gmail.com",
+    "url": "https://github.com/Viking602"
   },
-  "homepage": "https://example.invalid/codex-orchestrator",
-  "repository": "https://example.invalid/codex-orchestrator.git",
+  "homepage": "https://github.com/Viking602/codex-orchestrator",
+  "repository": "https://github.com/Viking602/codex-orchestrator",
   "license": "MIT",
   "keywords": [
     "codex",
@@ -30,9 +30,9 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://example.invalid/codex-orchestrator",
-    "privacyPolicyURL": "https://example.invalid/privacy",
-    "termsOfServiceURL": "https://example.invalid/terms",
+    "websiteURL": "https://github.com/Viking602/codex-orchestrator",
+    "privacyPolicyURL": "https://github.com/Viking602/codex-orchestrator/blob/master/docs/product/privacy-policy.md",
+    "termsOfServiceURL": "https://github.com/Viking602/codex-orchestrator/blob/master/docs/product/terms-of-service.md",
     "defaultPrompt": [
       "Use Codex Orchestrator to turn this request into a spec, plan, and bounded execution flow.",
       "Review the active implementation plan, sync task progress, and keep repository docs aligned.",

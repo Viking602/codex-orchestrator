@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import type { PlanExecutionStatus, PlanStep, PlanTask, ReviewStatus } from "../types.ts";
+import type { FinalAcceptanceItem, PlanExecutionStatus, PlanStep, PlanTask, ReviewStatus } from "../types.ts";
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -115,6 +115,44 @@ export class PlanDocument {
     return task.steps.every((step) => step.checked);
   }
 
+  readFinalAcceptance(): FinalAcceptanceItem[] {
+    const lines = this.readLines();
+    const range = this.findSectionRange(lines, "## Final Acceptance");
+    if (!range) return [];
+    const items: FinalAcceptanceItem[] = [];
+    for (let index = range.start + 1; index < range.end; index += 1) {
+      const match = lines[index].match(/^- \[( |x)\] (.+)$/);
+      if (!match) continue;
+      items.push({
+        checked: match[1] === "x",
+        text: match[2],
+      });
+    }
+    return items;
+  }
+
+  allFinalAcceptanceChecked(): boolean {
+    const items = this.readFinalAcceptance();
+    return items.length > 0 && items.every((item) => item.checked);
+  }
+
+  uncheckedFinalAcceptanceItems(): string[] {
+    return this.readFinalAcceptance()
+      .filter((item) => !item.checked)
+      .map((item) => item.text);
+  }
+
+  markFinalAcceptance(text: string, checked: boolean): void {
+    const lines = this.readLines();
+    const range = this.findSectionRange(lines, "## Final Acceptance");
+    if (!range) throw new Error("Final Acceptance section not found");
+    const regex = new RegExp(`^- \\[(?: |x)\\] ${escapeRegex(text)}$`);
+    const index = lines.findIndex((line, idx) => idx >= range.start && idx < range.end && regex.test(line));
+    if (index === -1) throw new Error(`Final acceptance item not found: ${text}`);
+    lines[index] = lines[index].replace(/^- \[(?: |x)\]/, checked ? "- [x]" : "- [ ]");
+    this.writeLines(lines);
+  }
+
   private parseExecutionStatus(lines: string[]): PlanExecutionStatus {
     const range = this.findSectionRange(lines, "## Execution Status");
     if (!range) throw new Error("Execution Status section not found");
@@ -135,7 +173,7 @@ export class PlanDocument {
     const tasks: PlanTask[] = [];
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
-      const match = line.match(/^### Task (T\d+): (.+)$/);
+      const match = line.match(/^### Task ([A-Za-z0-9-]+): (.+)$/);
       if (!match) continue;
       const [, id, title] = match;
       const end = this.findTaskEnd(lines, index + 1);
@@ -143,6 +181,8 @@ export class PlanDocument {
       tasks.push({
         id,
         title,
+        category: this.extractField(block, "**Category:**"),
+        ownerRole: this.extractField(block, "**Owner Role:**"),
         taskStatus: this.extractField(block, "**Task Status:**"),
         currentStep: this.extractField(block, "**Current Step:**"),
         specReviewStatus: normalizeReviewStatus(this.extractField(block, "**Spec Review Status:**")),

@@ -25,6 +25,15 @@ Treat the repository as the durable control plane.
 - Step completion must be recorded incrementally, not batched at the end.
 - Acceptance requires verification evidence and review passes.
 
+## Preferred Bundled Agents
+
+- `harness-planner` for new design specs and implementation plans
+- `search-specialist` for read-only repo evidence gathering
+- `backend-developer` for general coding and plugin implementation work
+- `harness-evaluator` for findings-first review
+- `harness-doc-gardener` for routing-doc cleanup after surface changes
+- `harness-dispatch-gate` before non-trivial implementation ownership decisions
+
 ## Preferred MCP Tools
 
 - `orchestrator_resolve_category`
@@ -37,4 +46,3 @@ Treat the repository as the durable control plane.
 - `orchestrator_accept_task`
 - `orchestrator_check_doc_drift`
 - `orchestrator_watchdog_tick`
-
