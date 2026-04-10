@@ -49,8 +49,8 @@ completion_contract = ["findings_recorded"]
 
 [backend-impl]
 intent = "implementation"
-preferred_role = "mcp-developer"
-allowed_roles = ["mcp-developer"]
+preferred_role = "backend-developer"
+allowed_roles = ["backend-developer"]
 write_policy = "lease-required"
 requires_plan = true
 requires_spec_review = true

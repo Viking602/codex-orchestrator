@@ -20,6 +20,8 @@ const PLAN_FIXTURE = `# Test Plan
 
 ### Task T1: Example Task
 
+**Category:** backend-impl
+**Owner Role:** backend-developer
 **Task Status:** ready
 **Current Step:** none
 **Spec Review Status:** pending
@@ -84,6 +86,8 @@ test("PlanDocument parses adjacent task blocks without skipping", () => {
 
 ### Task T1: First Task
 
+**Category:** backend-impl
+**Owner Role:** backend-developer
 **Task Status:** ready
 **Current Step:** none
 **Spec Review Status:** pending
@@ -94,6 +98,8 @@ test("PlanDocument parses adjacent task blocks without skipping", () => {
 
 ### Task T2: Second Task
 
+**Category:** review
+**Owner Role:** harness-evaluator
 **Task Status:** ready
 **Current Step:** none
 **Spec Review Status:** pending

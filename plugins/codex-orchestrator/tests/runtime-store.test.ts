@@ -22,7 +22,7 @@ test("RuntimeStore persists plan and task state", () => {
     taskId: "T2",
     categoryId: "backend-impl",
     status: "running_impl",
-    assignedRole: "mcp-developer",
+    assignedRole: "backend-developer",
     agentId: "agent-123",
   });
 
@@ -32,4 +32,24 @@ test("RuntimeStore persists plan and task state", () => {
   assert.equal(plan?.activeTaskId, "T2");
   assert.equal(task?.agentId, "agent-123");
   assert.equal(task?.status, "running_impl");
+});
+
+test("RuntimeStore acquires and releases write leases", () => {
+  const dir = mkdtempSync(join(tmpdir(), "codex-orchestrator-db-"));
+  const dbPath = join(dir, "state.db");
+  const store = new RuntimeStore(dbPath);
+
+  const lease = store.acquireWriteLease({
+    planId: "plan-2",
+    taskId: "T9",
+    holderAgentId: "agent-lease",
+    scope: ["src/**"],
+  });
+  const activeLease = store.getActiveWriteLease("plan-2", "T9");
+  assert.equal(activeLease?.leaseId, lease.leaseId);
+  assert.equal(activeLease?.status, "active");
+
+  const released = store.releaseWriteLease(lease.leaseId);
+  assert.equal(released.status, "released");
+  assert.equal(store.getActiveWriteLease("plan-2", "T9"), undefined);
 });
