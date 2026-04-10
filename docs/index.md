@@ -6,8 +6,9 @@
 - [Current design spec](/Users/viking/agents_dev/project03/docs/specs/2026-04-09-codex-orchestrator-bundled-agents-design.md)
 - [Phase 2 design spec](/Users/viking/agents_dev/project03/docs/specs/2026-04-09-codex-orchestrator-phase-2-design.md)
 - [Phase 3 design spec](/Users/viking/agents_dev/project03/docs/specs/2026-04-09-codex-orchestrator-phase-3-design.md)
+- [Installer design spec](/Users/viking/agents_dev/project03/docs/specs/2026-04-10-codex-orchestrator-installer-design.md)
 - [Bundled agents architecture note](/Users/viking/agents_dev/project03/docs/architecture/bundled-agent-bundle.md)
-- [Current implementation plan](/Users/viking/agents_dev/project03/docs/plans/active/2026-04-09-codex-orchestrator-bundled-agents-implementation.md)
+- [Current implementation plan](/Users/viking/agents_dev/project03/docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md)
 
 ## Architecture
 
@@ -38,7 +39,7 @@
 
 - `docs/plans/active/` holds plans currently being executed.
 - `docs/plans/completed/` holds closed plans for historical reference.
-- The current execution anchor is [2026-04-09-codex-orchestrator-bundled-agents-implementation.md](/Users/viking/agents_dev/project03/docs/plans/active/2026-04-09-codex-orchestrator-bundled-agents-implementation.md).
+- The current execution anchor is [2026-04-10-codex-orchestrator-installer-implementation.md](/Users/viking/agents_dev/project03/docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md).
 
 ## Specs
 

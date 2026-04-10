@@ -20,6 +20,8 @@
 - Phase 3 closes the gap between child self-report and parent acceptance by introducing explicit completion assessment.
 - Completion guard gives the parent a fail-closed answer before it can claim 100 percent completion.
 - Review and repair loop semantics are now documented explicitly instead of being implicit in parent behavior.
+- The safest installer default is `link` mode, because this repository remains the source of truth for local development.
+- Bundled agent installation should back up conflicting files before replacement instead of silently overwriting them.
 - The plugin's preferred-role path was still dependent on external host agent inventory even after phase 3 completed.
 - The smallest coherent bundled set should prefer a generic coding role such as `backend-developer`, not a niche MCP-specialist implementation role.
 - `harness-generator` is not a good default bundled implementer here because the plugin already has a stronger generic implementation role.

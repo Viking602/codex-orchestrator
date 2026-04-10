@@ -2,15 +2,15 @@
 
 ## Goal
 
-Bundle the plugin's default Codex agents with the repository so planning, research, MCP implementation, review, dispatch, and routing-doc maintenance roles travel with the plugin instead of depending on implicit host setup.
+Add a one-click installer so the plugin, marketplace entry, and bundled agents can be installed into a local Codex environment with one command.
 
 ## Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Create bundled-agent spec and execution plan | complete | New active plan and design spec created, routing switched |
-| 2. Vendor and customize bundled agents | complete | Selected six roles, added plugin-owned Codex `.toml` copies, documented provenance |
-| 3. Wire plugin metadata and add drift checks | complete | Updated `openai.yaml`, skill docs, tests, and verification flow |
+| 1. Create installer spec and execution plan | complete | New active plan and design spec created, routing switched |
+| 2. Implement installer script | complete | Plugin install, marketplace registration, and agent install behavior implemented |
+| 3. Validate installer behavior and sync docs | complete | Tests passed and docs updated |
 
 ## Current Decisions
 
@@ -25,6 +25,8 @@ Bundle the plugin's default Codex agents with the repository so planning, resear
 - The plugin should ship only the happy-path default roles, not a full third-party agent catalog.
 - Bundled agent files under `plugins/codex-orchestrator/codex/agents/` are plugin-owned local derivatives.
 - The default implementation role should stay generic to coding work and avoid both niche MCP specialization and overfitting to one language persona.
+- Installer work is now the active execution track.
+- Installer implementation is now complete and validated.
 
 ## Open Questions
 
@@ -45,3 +47,5 @@ Bundle the plugin's default Codex agents with the repository so planning, resear
 - Created the bundled-agent design spec and active implementation plan
 - Bundled six Codex agent definitions under `plugins/codex-orchestrator/codex/agents/`
 - Added plugin-specific agent-surface wiring and drift tests for category preferred roles
+- Created the installer design spec and installer active implementation plan
+- Implemented the one-click installer script and verified dry-run, copy install, marketplace registration, and agent backup behavior

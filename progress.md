@@ -25,3 +25,7 @@
 - Bundled six plugin-owned Codex agent definitions and wired them through the plugin agent manifest.
 - Added bundle documentation and a regression test that keeps category preferred roles aligned with the bundled inventory.
 - Generalized the bundled default implementation role to `backend-developer` so the plugin stays coding-oriented instead of specialist-oriented or language-locked.
+- Created the installer design spec and installer active implementation plan.
+- Switched routing docs so the installer plan is now the active execution anchor.
+- Implemented the installer script with link/copy modes, dry-run, marketplace registration, and safe agent backup behavior.
+- Verified installer tests pass and documented the one-click install flow in the README.
