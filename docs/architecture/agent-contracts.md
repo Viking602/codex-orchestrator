@@ -5,6 +5,7 @@
 The parent orchestration layer owns:
 
 - category resolution
+- write lease acquisition and release
 - role dispatch
 - runtime state transitions
 - plan file synchronization
@@ -46,3 +47,23 @@ The reviewer must not:
 - Parent plan synchronization must happen after each completed step.
 - End-of-task batch completion is invalid and should fail review.
 
+## Parent Next-Action Rule
+
+The parent should prefer `orchestrator_next_action` over informal reasoning when deciding:
+
+- whether to acquire a write lease
+- whether to dispatch a task
+- whether to continue the same implementer
+- whether to re-run review
+- whether a task is ready for acceptance
+
+## Parent Completion Accountability
+
+The parent is responsible for the child outcome. Child status alone does not close a task.
+
+Required parent checks:
+
+- run `orchestrator_assess_subagent_completion`
+- route into review or repair when needed
+- run `orchestrator_completion_guard` before declaring work complete
+- never accept optional expansion questions by default

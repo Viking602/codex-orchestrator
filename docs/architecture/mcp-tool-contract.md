@@ -13,6 +13,10 @@ Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js
 - `orchestrator_resolve_category`
 - `orchestrator_read_plan_state`
 - `orchestrator_begin_task`
+- `orchestrator_acquire_write_lease`
+- `orchestrator_release_write_lease`
+- `orchestrator_question_gate`
+- `orchestrator_assess_subagent_completion`
 - `orchestrator_begin_step`
 - `orchestrator_complete_step`
 - `orchestrator_record_subagent_run`
@@ -20,6 +24,8 @@ Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js
 - `orchestrator_accept_task`
 - `orchestrator_check_doc_drift`
 - `orchestrator_watchdog_tick`
+- `orchestrator_next_action`
+- `orchestrator_completion_guard`
 
 ## Enforcement
 
@@ -27,4 +33,8 @@ Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js
 - Task acceptance is rejected if steps are unchecked or reviews are incomplete.
 - Review recording rejects implementer-as-reviewer reuse.
 - Plan synchronization always writes to markdown instead of relying on chat state.
-
+- Lease-required categories fail closed without an active write lease.
+- `next_action` derives a deterministic parent move from plan plus runtime state.
+- `question_gate` rejects optional expansion questions by default.
+- `assess_subagent_completion` prevents child self-report from being treated as task completion.
+- `completion_guard` fails closed before parent completion.

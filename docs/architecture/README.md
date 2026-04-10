@@ -8,5 +8,5 @@ Planned contents:
 - runtime state schema
 - MCP tool contract
 - agent contracts
+- bundled agent bundle
 - plan synchronization rules
-

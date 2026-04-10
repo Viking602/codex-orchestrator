@@ -71,6 +71,17 @@ Runtime state records short-lived orchestration metadata that supports recovery 
 - `summary`
 - `created_at`
 
+### `write_lease`
+
+- `lease_id`
+- `plan_id`
+- `task_id`
+- `holder_agent_id`
+- `scope_json`
+- `status`
+- `created_at`
+- `released_at`
+
 ## Task Statuses
 
 - `planned`
@@ -91,5 +102,5 @@ Runtime state records short-lived orchestration metadata that supports recovery 
 - A task may not enter `accepted` unless all step checkboxes are checked in the plan file.
 - A task may not enter `accepted` unless both reviews are `pass`.
 - A reviewer must never reuse the implementer `agent_id`.
+- A lease-required implementation task may not enter `running_impl` without an active lease.
 - Runtime state must be recoverable without relying on chat history.
-

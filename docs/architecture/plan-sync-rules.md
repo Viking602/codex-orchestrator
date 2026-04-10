@@ -29,8 +29,8 @@ The execution status section must include:
 4. When a review completes, update task review fields and top-level execution status.
 5. When a task is accepted, check the top-level task checkbox in the TODO list.
 6. When a blocker appears, update both execution status and task state.
+7. When a write lease is acquired or released, update task status context so the parent can resume from files plus runtime state.
 
 ## Truth Rule
 
 Runtime state may say a task is ready for acceptance, but the task is not truly complete until the plan file reflects that state.
-
