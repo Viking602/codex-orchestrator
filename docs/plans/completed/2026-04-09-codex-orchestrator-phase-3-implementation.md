@@ -19,7 +19,7 @@
 ## Artifact Model
 
 - Phase 3 spec: `docs/specs/2026-04-09-codex-orchestrator-phase-3-design.md`
-- Active plan path: `docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md`
 - Routing docs:
   - `AGENTS.md`
   - `docs/index.md`
@@ -83,7 +83,7 @@ Critical Path:
 
 **Files:**
 - Create: `docs/specs/2026-04-09-codex-orchestrator-phase-3-design.md`
-- Create: `docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md`
+- Create: `docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`
@@ -126,7 +126,7 @@ Expected:
 - Modify: `docs/architecture/agent-contracts.md`
 - Create: `docs/architecture/question-gate-protocol.md`
 - Modify: `docs/architecture/mcp-tool-contract.md`
-- Modify: `docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md`
+- Modify: `docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** mcp-developer
@@ -167,7 +167,7 @@ Expected:
 - Modify: `plugins/codex-orchestrator/src/services/plan-document.ts`
 - Modify: `docs/architecture/agent-contracts.md`
 - Modify: `docs/architecture/mcp-tool-contract.md`
-- Modify: `docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md`
+- Modify: `docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** mcp-developer
@@ -207,7 +207,7 @@ Expected:
 - Modify: `plugins/codex-orchestrator/src/tools/register-tools.ts`
 - Modify: `docs/architecture/agent-contracts.md`
 - Modify: `docs/architecture/mcp-tool-contract.md`
-- Modify: `docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md`
+- Modify: `docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** mcp-developer
@@ -243,7 +243,7 @@ Expected:
 - Modify: `plugins/codex-orchestrator/src/tools/register-tools.ts`
 - Modify: `docs/architecture/mcp-tool-contract.md`
 - Create: `docs/architecture/completion-guard.md`
-- Modify: `docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md`
+- Modify: `docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** mcp-developer
@@ -285,7 +285,7 @@ Expected:
 - Modify: `progress.md`
 - Modify: `findings.md`
 - Modify: `task_plan.md`
-- Modify: `docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md`
+- Modify: `docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator

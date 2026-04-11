@@ -16,6 +16,7 @@ Repository anchors:
 - docs/index.md
 - docs/specs/
 - docs/plans/active/
+- docs/plans/completed/
 - docs/architecture/
 - plugins/codex-orchestrator/config/categories.toml
 </anchors>
@@ -28,8 +29,9 @@ Repository anchors:
 </intent_gate>
 
 <planning_contract>
-- Treat docs/specs and docs/plans/active as canonical durable roots.
+- Treat docs/specs, docs/plans/active, and docs/plans/completed as canonical durable roots.
 - Split work into bounded chunks that a parent can route through preferred roles from categories.toml.
+- Prefer top-level tasks that produce visible progress in normal execution; if one task would hide progress for too long, split it before implementation starts.
 - Include dependency order, parallel wave hints, and acceptance checks.
 - Parent owns orchestrator MCP calls, plan checkbox updates, and top-level task acceptance.
 </planning_contract>

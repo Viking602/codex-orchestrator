@@ -19,7 +19,7 @@
 ## Artifact Model
 
 - Spec path: `docs/specs/2026-04-11-codex-orchestrator-delegation-first-dispatch-design.md`
-- Active plan path: `docs/plans/active/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
 - Category config: `plugins/codex-orchestrator/config/categories.toml`
 - Tool implementation: `plugins/codex-orchestrator/src/tools/register-tools.ts`
 - Category resolver: `plugins/codex-orchestrator/src/services/category-registry.ts`
@@ -67,7 +67,7 @@
 
 **Files:**
 - Create: `docs/specs/2026-04-11-codex-orchestrator-delegation-first-dispatch-design.md`
-- Create: `docs/plans/active/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
+- Create: `docs/plans/completed/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`
@@ -90,7 +90,7 @@
 **Files:**
 - Modify: `plugins/codex-orchestrator/tests/category-registry.test.ts`
 - Modify: `plugins/codex-orchestrator/tests/tools.test.ts`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator
@@ -116,7 +116,7 @@
 - Modify: `docs/architecture/category-contract.md`
 - Modify: `docs/architecture/agent-contracts.md`
 - Modify: `docs/architecture/mcp-tool-contract.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** backend-developer
@@ -140,7 +140,7 @@
 - Modify: `task_plan.md`
 - Modify: `docs/index.md`
 - Modify: `AGENTS.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator

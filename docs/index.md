@@ -3,18 +3,21 @@
 ## Start Here
 
 - [Repository map](../AGENTS.md)
-- [Current design spec](specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md)
+- [Current design spec](specs/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-design.md)
 - [Phase 2 design spec](specs/2026-04-09-codex-orchestrator-phase-2-design.md)
 - [Phase 3 design spec](specs/2026-04-09-codex-orchestrator-phase-3-design.md)
 - [Installer design spec](specs/2026-04-10-codex-orchestrator-installer-design.md)
 - [Marketplace install design spec](specs/2026-04-11-codex-orchestrator-marketplace-install-design.md)
 - [Default workflow routing design spec](specs/2026-04-11-codex-orchestrator-default-workflow-routing-design.md)
 - [Delegation-first dispatch design spec](specs/2026-04-11-codex-orchestrator-delegation-first-dispatch-design.md)
+- [Incremental step synchronization design spec](specs/2026-04-11-codex-orchestrator-incremental-step-sync-design.md)
+- [Native Codex todo mirroring design spec](specs/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-design.md)
 - [Install guide design spec](specs/2026-04-11-codex-orchestrator-install-guide-design.md)
+- [Completed plan auto-archive design spec](specs/2026-04-11-codex-orchestrator-plan-archive-design.md)
 - [Relative doc-path policy design spec](specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md)
 - [Bundled agents architecture note](architecture/bundled-agent-bundle.md)
 - [Root install guide](../install.md)
-- [Current implementation plan](plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md)
+- [Most recent completed plan](plans/completed/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md)
 
 ## Architecture
 
@@ -45,7 +48,11 @@
 
 - `docs/plans/active/` holds plans currently being executed.
 - `docs/plans/completed/` holds closed plans for historical reference.
-- The current execution anchor is [2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md](plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md).
+- Active plans should advance `Current Step` incrementally so progress is visible during execution rather than batch-updated at the end.
+- When native Codex `update_plan` is available, the parent should mirror the active plan into that surface instead of creating a separate chat todo.
+- Completed plans auto-move out of `active/` once all top-level TODO items are checked and any `Final Acceptance` items are closed.
+- There is currently no open active implementation plan.
+- The most recent completed plan is [2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md](plans/completed/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md).
 
 ## Specs
 

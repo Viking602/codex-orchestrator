@@ -21,8 +21,10 @@ Treat the repository as the durable control plane.
 4. Resolve the task category through the plugin MCP server.
 5. Read the category delegation signal before deciding whether work stays local or goes to a child agent.
 6. Update plan status before and after every bounded execution step.
-7. Require review gates before top-level task acceptance.
-8. Keep `AGENTS.md`, `docs/index.md`, and architecture docs synchronized with the changed project surface.
+7. Treat `Current Step` as a live pointer, not a deferred summary: seed it when work starts and advance it immediately after each completed step.
+8. When native `update_plan` is available, mirror the active implementation plan into that surface instead of inventing a separate chat todo.
+9. Require review gates before top-level task acceptance.
+10. Keep `AGENTS.md`, `docs/index.md`, and architecture docs synchronized with the changed project surface.
 
 ## Core Rules
 
@@ -31,6 +33,9 @@ Treat the repository as the durable control plane.
 - The parent is the control plane; ordinary plan, research, implementation, and review work should bias to child execution.
 - Child implementers and reviewers do not mark top-level tasks complete.
 - Step completion must be recorded incrementally, not batched at the end.
+- If `orchestrator_next_action` says step sync is missing or stale, repair that drift before continuing the task.
+- Prefer plans whose top-level tasks are small enough to produce visible progress instead of hiding most progress inside one oversized task.
+- Use `orchestrator_export_codex_todo` plus native `update_plan` to mirror plan progress when available; do not keep a separate prose todo for plan-tracked work.
 - Acceptance requires verification evidence and review passes.
 - Do not bypass this workflow for normal repository work just because another generic process skill also matches the prompt.
 - Repository markdown docs must not contain machine-specific absolute filesystem paths; use repo-relative links and portable placeholders instead.
@@ -49,6 +54,7 @@ Treat the repository as the durable control plane.
 
 - `orchestrator_resolve_category`
 - `orchestrator_read_plan_state`
+- `orchestrator_export_codex_todo`
 - `orchestrator_next_action`
 - `orchestrator_begin_task`
 - `orchestrator_begin_step`

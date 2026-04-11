@@ -8,7 +8,7 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 
 - Read [docs/index.md](docs/index.md) first for the document map.
 - Read [install.md](install.md) when the task is installing or verifying plugin installation.
-- Read the active implementation plan in `docs/plans/active/` before changing behavior.
+- Read the active implementation plan in `docs/plans/active/` when one exists before changing behavior.
 - Treat the implementation plan file as the execution source of truth.
 - Update routing docs in the same pass when paths, commands, entrypoints, or document locations change.
 
@@ -17,7 +17,7 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - For repository work in this repo, `codex-orchestrator` is the default workflow.
 - Invoke the installed `codex-orchestrator` bundled skill before generic process skills when doing feature work, bug fixes, refactors, debugging, docs changes, architecture work, or other multi-step repo tasks.
 - Treat generic process skills as subordinate helpers after orchestration begins or when the plugin is unavailable.
-- Start by reading the active plan, then keep plan status and routing docs synchronized throughout execution.
+- Start by reading the active plan when one exists, then keep plan status and routing docs synchronized throughout execution.
 
 ## Execution Rules
 
@@ -25,6 +25,9 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - Do not treat runtime state as the final truth for completion. Plan checkboxes are authoritative.
 - Parent orchestration owns task acceptance and plan checkbox updates.
 - Child implementers and reviewers must not mark top-level plan tasks complete.
+- During active work, `Current Step` must point at the actionable unchecked step instead of lingering at `none`.
+- Step synchronization drift is a repository defect; repair missing or stale step pointers before continuing implementation.
+- When native Codex `update_plan` is available, mirror the active implementation plan into that surface instead of maintaining a separate chat todo.
 - Documentation in this repository must never contain machine-specific absolute filesystem paths.
 - Repository docs must use repo-relative artifact links such as `docs/...`, `../AGENTS.md`, or `privacy-policy.md`.
 - When an agent first touches the repository and finds legacy absolute-path documentation, it must repair those docs in the same pass without asking for confirmation.
@@ -49,19 +52,25 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - [Marketplace install design spec](docs/specs/2026-04-11-codex-orchestrator-marketplace-install-design.md)
 - [Default workflow routing design spec](docs/specs/2026-04-11-codex-orchestrator-default-workflow-routing-design.md)
 - [Delegation-first dispatch design spec](docs/specs/2026-04-11-codex-orchestrator-delegation-first-dispatch-design.md)
+- [Incremental step synchronization design spec](docs/specs/2026-04-11-codex-orchestrator-incremental-step-sync-design.md)
+- [Native Codex todo mirroring design spec](docs/specs/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-design.md)
 - [Install guide design spec](docs/specs/2026-04-11-codex-orchestrator-install-guide-design.md)
+- [Completed plan auto-archive design spec](docs/specs/2026-04-11-codex-orchestrator-plan-archive-design.md)
 - [Relative doc-path policy design spec](docs/specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md)
 - [Root install guide](install.md)
-- [Phase 1 completed plan](docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md)
-- [Phase 2 completed plan](docs/plans/active/2026-04-09-codex-orchestrator-phase-2-implementation.md)
-- [Active phase 3 implementation plan](docs/plans/active/2026-04-09-codex-orchestrator-phase-3-implementation.md)
-- [Active bundled agents implementation plan](docs/plans/active/2026-04-09-codex-orchestrator-bundled-agents-implementation.md)
-- [Active installer implementation plan](docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md)
-- [Active marketplace install implementation plan](docs/plans/active/2026-04-11-codex-orchestrator-marketplace-install-implementation.md)
-- [Active default workflow routing implementation plan](docs/plans/active/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md)
-- [Active delegation-first dispatch implementation plan](docs/plans/active/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md)
-- [Active install guide implementation plan](docs/plans/active/2026-04-11-codex-orchestrator-install-guide-implementation.md)
-- [Active relative doc-path policy implementation plan](docs/plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md)
+- [Phase 1 completed plan](docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md)
+- [Phase 2 completed plan](docs/plans/completed/2026-04-09-codex-orchestrator-phase-2-implementation.md)
+- [Phase 3 completed plan](docs/plans/completed/2026-04-09-codex-orchestrator-phase-3-implementation.md)
+- [Bundled agents completed plan](docs/plans/completed/2026-04-09-codex-orchestrator-bundled-agents-implementation.md)
+- [Installer completed plan](docs/plans/completed/2026-04-10-codex-orchestrator-installer-implementation.md)
+- [Marketplace install completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-marketplace-install-implementation.md)
+- [Default workflow routing completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md)
+- [Delegation-first dispatch completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-delegation-first-dispatch-implementation.md)
+- [Incremental step synchronization completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-incremental-step-sync-implementation.md)
+- [Native Codex todo mirroring completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md)
+- [Install guide completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md)
+- [Completed plan auto-archive implementation plan](docs/plans/completed/2026-04-11-codex-orchestrator-plan-archive-implementation.md)
+- [Relative doc-path policy completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md)
 - [Category contract](docs/architecture/category-contract.md)
 - [Runtime state schema](docs/architecture/runtime-state-schema.md)
 - [Write lease protocol](docs/architecture/write-lease-protocol.md)

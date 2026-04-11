@@ -19,7 +19,7 @@
 ## Artifact Model
 
 - Spec path: `docs/specs/2026-04-11-codex-orchestrator-marketplace-install-design.md`
-- Active plan path: `docs/plans/active/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
 - Repo marketplace path: `.agents/plugins/marketplace.json`
 - Installer path: `scripts/install-codex-orchestrator.sh`
 - Test path: `tests/install-script.test.ts`
@@ -60,7 +60,7 @@
 
 **Files:**
 - Create: `docs/specs/2026-04-11-codex-orchestrator-marketplace-install-design.md`
-- Create: `docs/plans/active/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
+- Create: `docs/plans/completed/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`
@@ -85,7 +85,7 @@
 - Modify: `scripts/install-codex-orchestrator.sh`
 - Modify: `README.md`
 - Modify: `docs/specs/2026-04-11-codex-orchestrator-marketplace-install-design.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** backend-developer
@@ -110,7 +110,7 @@
 - Modify: `task_plan.md`
 - Modify: `docs/index.md`
 - Modify: `AGENTS.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator
@@ -128,7 +128,7 @@
 ### Task M4: Verify And Perform Local Install
 
 **Files:**
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-marketplace-install-implementation.md`
 - Modify: `progress.md`
 
 **Category:** review

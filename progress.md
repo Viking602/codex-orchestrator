@@ -59,3 +59,19 @@
 - Replaced machine-specific absolute markdown links in routing and product docs with repo-relative links.
 - Replaced hard-coded machine-path install examples with portable forms.
 - Added a markdown regression test that fails when absolute filesystem paths appear in repository docs.
+- Created the completed-plan auto-archive design spec and active implementation plan.
+- Added `PlanDocument` archive-on-read and archive-on-completion behavior, including stale active-path resolution and CRLF-safe parsing.
+- Added regression tests for completed active plans, legacy plans without `Final Acceptance`, and tool-level archive-on-read behavior.
+- Archived the repository's historical completed plans into `docs/plans/completed/` and updated routing docs, architecture docs, and bundled-agent instructions to match the archive model.
+- Verified the full plugin test suite passes and confirmed completed historical plans no longer remain in `docs/plans/active/`.
+- Created the incremental step synchronization design spec and active implementation plan.
+- Added tool-level regression coverage for task-start step seeding, step auto-advance, next-action step guidance, and watchdog repair of missing current-step sync.
+- Updated `orchestrator_begin_task`, `orchestrator_complete_step`, `orchestrator_next_action`, and watchdog derivation so the plugin now emits machine-readable step guidance instead of tolerating late batched progress updates.
+- Fixed `PlanDocument` archive-path resolution so completed plans now auto-archive correctly for both absolute and repo-relative `docs/plans/active/...` paths.
+- Updated plan-sync rules, MCP contract docs, repository routing, and bundled planner guidance so `Current Step` behaves as a live execution pointer and large opaque TODO blocks get split more aggressively.
+- Verified the full plugin test suite passes with the new incremental step-sync coverage.
+- Created the native Codex todo mirroring design spec and active implementation plan.
+- Added `orchestrator_export_codex_todo` so the parent can mirror top-level plan progress into native `update_plan` without inventing a second todo system.
+- Added regression coverage for active-task mirroring, pending/completed task ordering, and final-acceptance projection into native todo output.
+- Updated workflow docs and installer-managed default guidance so parent agents mirror the active plan into native `update_plan` when available and stop maintaining separate chat todos.
+- Verified the full plugin test suite passes with the new native-todo mirroring coverage and confirmed the export tool projects the repository's active plan into a single in-progress Codex todo item with current-step detail.

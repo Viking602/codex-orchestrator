@@ -46,7 +46,7 @@ Chat is not an authoritative source of execution state.
 
 ### 2. Plan Is The Control Surface
 
-The implementation plan must function as:
+The active implementation plan must function as:
 
 - execution queue
 - dependency graph
@@ -130,6 +130,8 @@ Produces an OpenAgent-style implementation plan with:
 - checkbox steps
 - review gates
 - final acceptance section
+
+Completed plans leave `docs/plans/active/` and move into `docs/plans/completed/` once execution truth reaches 100 percent.
 
 ### Category Router
 

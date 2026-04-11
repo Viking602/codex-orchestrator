@@ -221,7 +221,8 @@ const managedBlock = `${begin}
 
 - When \`codex-orchestrator\` is installed and enabled, use it as the default workflow for repository tasks unless the user explicitly asks for a different workflow.
 - Start with the bundled \`codex-orchestrator\` skill for feature work, bug fixes, refactors, debugging, docs changes, architecture work, and other multi-step repository tasks.
-- Use the plugin MCP tools to resolve category, read the active plan, record step progress, and enforce review and completion gates.
+- Use the plugin MCP tools to resolve category, read the active plan, export the native Codex todo mirror, record step progress, and enforce review and completion gates.
+- When native \`update_plan\` is available, mirror the active implementation plan into that surface instead of maintaining a separate chat todo.
 - Generic process skills are fallback helpers after \`codex-orchestrator\` takes control or when the plugin is unavailable.
 - Follow stronger repository-local \`AGENTS.md\` guidance when a repository provides it.
 ${end}`;

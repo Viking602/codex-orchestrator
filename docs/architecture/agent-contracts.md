@@ -6,6 +6,7 @@ The parent orchestration layer owns:
 
 - category resolution
 - delegation decision interpretation
+- native Codex `update_plan` mirroring when that tool is available
 - write lease acquisition and release
 - role dispatch
 - runtime state transitions
@@ -47,6 +48,14 @@ The reviewer must not:
 - Child execution substeps must be reported one-by-one.
 - Parent plan synchronization must happen after each completed step.
 - End-of-task batch completion is invalid and should fail review.
+- When native `update_plan` is available, the parent should mirror the active implementation plan into that surface instead of creating a separate prose todo list.
+
+## Native Todo Mirror Rule
+
+- The implementation plan file is the authoritative ledger.
+- Codex native todo is a projection of that ledger, not an independent plan.
+- Parents should refresh the native todo mirror after task start, step completion, task acceptance, and final-acceptance changes.
+- `orchestrator_export_codex_todo` is the canonical projection surface for native todo mirroring.
 
 ## Parent Next-Action Rule
 

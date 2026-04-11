@@ -19,7 +19,7 @@
 ## Artifact Model
 
 - Spec path: `docs/specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md`
-- Active plan path: `docs/plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
 - Routing docs:
   - `AGENTS.md`
   - `docs/index.md`
@@ -68,7 +68,7 @@
 
 **Files:**
 - Create: `docs/specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md`
-- Create: `docs/plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
+- Create: `docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`
@@ -90,7 +90,7 @@
 
 **Files:**
 - Create: `plugins/codex-orchestrator/tests/docs-relative-path-policy.test.ts`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator
@@ -112,7 +112,7 @@
 - Modify: `install.md`
 - Modify: `docs/product/README.md`
 - Modify: `plugins/codex-orchestrator/skills/orchestrator/SKILL.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** backend-developer
@@ -135,7 +135,7 @@
 - Modify: `task_plan.md`
 - Modify: `docs/index.md`
 - Modify: `AGENTS.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator

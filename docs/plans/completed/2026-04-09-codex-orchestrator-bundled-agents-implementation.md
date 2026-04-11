@@ -19,7 +19,7 @@
 ## Artifact Model
 
 - Design spec: `docs/specs/2026-04-09-codex-orchestrator-bundled-agents-design.md`
-- Active plan path: `docs/plans/active/2026-04-09-codex-orchestrator-bundled-agents-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-09-codex-orchestrator-bundled-agents-implementation.md`
 - Long-lived architecture note: `docs/architecture/bundled-agent-bundle.md`
 - Plugin bundle root: `plugins/codex-orchestrator/codex/agents/`
 
@@ -72,7 +72,7 @@ Critical Path:
 
 **Files:**
 - Create: `docs/specs/2026-04-09-codex-orchestrator-bundled-agents-design.md`
-- Create: `docs/plans/active/2026-04-09-codex-orchestrator-bundled-agents-implementation.md`
+- Create: `docs/plans/completed/2026-04-09-codex-orchestrator-bundled-agents-implementation.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`

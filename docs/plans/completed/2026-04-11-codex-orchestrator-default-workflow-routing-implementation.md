@@ -20,7 +20,7 @@
 ## Artifact Model
 
 - Spec path: `docs/specs/2026-04-11-codex-orchestrator-default-workflow-routing-design.md`
-- Active plan path: `docs/plans/active/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
 - Repo routing doc: `AGENTS.md`
 - Docs index: `docs/index.md`
 - Session summary: `task_plan.md`
@@ -64,7 +64,7 @@
 
 **Files:**
 - Create: `docs/specs/2026-04-11-codex-orchestrator-default-workflow-routing-design.md`
-- Create: `docs/plans/active/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
+- Create: `docs/plans/completed/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`
@@ -86,7 +86,7 @@
 
 **Files:**
 - Modify: `tests/install-script.test.ts`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator
@@ -110,7 +110,7 @@
 - Modify: `AGENTS.md`
 - Modify: `README.md`
 - Modify: `docs/specs/2026-04-11-codex-orchestrator-default-workflow-routing-design.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** backend-developer
@@ -133,7 +133,7 @@
 - Modify: `task_plan.md`
 - Modify: `docs/index.md`
 - Modify: `AGENTS.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-default-workflow-routing-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator

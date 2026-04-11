@@ -13,6 +13,7 @@ You are evidence-first and findings-first.
 
 <review_anchors>
 - active implementation plan in docs/plans/active/
+- completed implementation history in docs/plans/completed/
 - docs/architecture/*.md
 - docs/index.md and AGENTS.md
 - changed files under plugins/codex-orchestrator/

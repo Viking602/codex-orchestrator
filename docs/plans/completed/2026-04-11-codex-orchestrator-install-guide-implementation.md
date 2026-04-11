@@ -19,7 +19,7 @@
 ## Artifact Model
 
 - Spec path: `docs/specs/2026-04-11-codex-orchestrator-install-guide-design.md`
-- Active plan path: `docs/plans/active/2026-04-11-codex-orchestrator-install-guide-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md`
 - Root install guide: `install.md`
 - Installer regression test: `tests/install-script.test.ts`
 - Routing docs:
@@ -62,7 +62,7 @@
 
 **Files:**
 - Create: `docs/specs/2026-04-11-codex-orchestrator-install-guide-design.md`
-- Create: `docs/plans/active/2026-04-11-codex-orchestrator-install-guide-implementation.md`
+- Create: `docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md`
 - Modify: `docs/index.md`
 - Modify: `AGENTS.md`
 - Modify: `task_plan.md`
@@ -84,7 +84,7 @@
 
 **Files:**
 - Modify: `tests/install-script.test.ts`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-install-guide-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator
@@ -107,7 +107,7 @@
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-install-guide-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md`
 
 **Category:** docs
 **Owner Role:** harness-doc-gardener
@@ -130,7 +130,7 @@
 - Modify: `task_plan.md`
 - Modify: `docs/index.md`
 - Modify: `AGENTS.md`
-- Modify: `docs/plans/active/2026-04-11-codex-orchestrator-install-guide-implementation.md`
+- Modify: `docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator

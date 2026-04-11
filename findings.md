@@ -45,3 +45,13 @@
 - Machine-specific absolute filesystem paths in markdown docs are portability bugs and should be treated as repository defects, not style preferences.
 - Repo-relative artifact links and portable placeholders are sufficient for this repository's documentation surfaces; machine-specific absolute paths add no durable value.
 - Legacy absolute-path docs should be repaired automatically on first touch instead of being escalated as a user decision.
+- Completed plans left under `docs/plans/active/` are execution-surface drift, not harmless clutter.
+- Historical plan repair must account for CRLF-authored markdown and for older plan templates that did not yet have a `Final Acceptance` section.
+- `PlanDocument` is the right place to reconcile stale active paths because it already owns markdown truth and can repair both reads and writes without adding a separate archival runner.
+- The first-visible TODO lag is caused less by missing step tools than by a weak plugin contract: parents were allowed to run tasks without a machine-readable current-step pointer.
+- Incremental progress needs to be enforced through the control plane: begin-task should seed the first open step, step completion should advance the pointer, and next-action/watchdog should expose sync drift directly.
+- Prompt-only guidance is insufficient here because parent agents still tend to batch multiple step completions unless the MCP payload itself makes the missing step transition visible and actionable.
+- Repo-relative plan paths are part of the normal agent workflow, so archive-path repair cannot assume absolute filesystem inputs; otherwise completed-plan auto-archive will behave inconsistently across callers.
+- The plugin cannot and should not own native Codex UI mutation directly; the right control-plane split is file-backed truth inside the plugin and parent-owned `update_plan` updates outside it.
+- A dedicated mirror export is necessary because `read_plan_state` alone leaves too much room for parent improvisation about which item should be `in_progress` and how current-step detail should appear.
+- Native todo mirroring must be expressed in both repository-local guidance and installer-managed global guidance, or new threads outside this repository will drift back toward separate chat todo lists.

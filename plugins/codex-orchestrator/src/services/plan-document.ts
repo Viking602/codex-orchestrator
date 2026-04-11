@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { basename, dirname } from "node:path";
 import type { FinalAcceptanceItem, PlanExecutionStatus, PlanStep, PlanTask, ReviewStatus } from "../types.ts";
 
 function escapeRegex(value: string): string {
@@ -12,15 +13,35 @@ function normalizeReviewStatus(value: string): ReviewStatus | string {
   return value;
 }
 
+function normalizePathSlashes(value: string): string {
+  return value.replace(/\\/gu, "/");
+}
+
+function toPlatformPath(value: string, like: string): string {
+  return like.includes("\\") ? value.replace(/\//gu, "\\") : value;
+}
+
+function completedPlanPath(planPath: string): string | null {
+  const normalized = normalizePathSlashes(planPath);
+  const match = normalized.match(/^(.*?)(docs\/plans\/)active\/([^/]+\.md)$/u);
+  if (!match) return null;
+  return toPlatformPath(`${match[1]}${match[2]}completed/${match[3]}`, planPath);
+}
+
 export class PlanDocument {
-  readonly planPath: string;
+  private currentPlanPath: string;
 
   constructor(planPath: string) {
-    this.planPath = planPath;
+    this.currentPlanPath = this.resolveInitialPlanPath(planPath);
+  }
+
+  get planPath(): string {
+    return this.currentPlanPath;
   }
 
   readText(): string {
-    return readFileSync(this.planPath, "utf8");
+    this.ensureArchivedIfCompleted();
+    return this.normalizeLineEndings(readFileSync(this.currentPlanPath, "utf8"));
   }
 
   readLines(): string[] {
@@ -254,6 +275,84 @@ export class PlanDocument {
   }
 
   private writeLines(lines: string[]): void {
-    writeFileSync(this.planPath, `${lines.join("\n").replace(/\n+$/u, "")}\n`, "utf8");
+    writeFileSync(this.currentPlanPath, `${lines.join("\n").replace(/\n+$/u, "")}\n`, "utf8");
+    this.ensureArchivedIfCompleted();
+  }
+
+  private resolveInitialPlanPath(planPath: string): string {
+    const archivedPath = completedPlanPath(planPath);
+    if (archivedPath && !existsSync(planPath) && existsSync(archivedPath)) {
+      return archivedPath;
+    }
+    return planPath;
+  }
+
+  private ensureArchivedIfCompleted(): void {
+    const archivedPath = completedPlanPath(this.currentPlanPath);
+    if (!archivedPath) return;
+    if (!existsSync(this.currentPlanPath)) {
+      if (existsSync(archivedPath)) {
+        this.currentPlanPath = archivedPath;
+      }
+      return;
+    }
+
+    const text = this.normalizeLineEndings(readFileSync(this.currentPlanPath, "utf8"));
+    const lines = text.split("\n");
+    if (!this.isPlanComplete(lines)) return;
+
+    mkdirSync(dirname(archivedPath), { recursive: true });
+    renameSync(this.currentPlanPath, archivedPath);
+    this.currentPlanPath = archivedPath;
+
+    const rewrittenText = this.rewriteArchivedPlanText(text, basename(archivedPath));
+    if (rewrittenText !== text) {
+      writeFileSync(this.currentPlanPath, this.normalizeDocumentText(rewrittenText), "utf8");
+    }
+  }
+
+  private isPlanComplete(lines: string[]): boolean {
+    const todoRange = this.findSectionRange(lines, "## TODO List");
+    if (!todoRange) return false;
+    const todoLines = lines
+      .slice(todoRange.start + 1, todoRange.end)
+      .filter((line) => /^- \[( |x)\] [A-Za-z0-9-]+\./u.test(line));
+    if (todoLines.length === 0 || todoLines.some((line) => line.startsWith("- [ ]"))) {
+      return false;
+    }
+
+    const finalAcceptanceItems = this.parseFinalAcceptanceItems(lines);
+    return finalAcceptanceItems.length === 0 || finalAcceptanceItems.every((item) => item.checked);
+  }
+
+  private parseFinalAcceptanceItems(lines: string[]): FinalAcceptanceItem[] {
+    const range = this.findSectionRange(lines, "## Final Acceptance");
+    if (!range) return [];
+    const items: FinalAcceptanceItem[] = [];
+    for (let index = range.start + 1; index < range.end; index += 1) {
+      const match = lines[index].match(/^- \[( |x)\] (.+)$/);
+      if (!match) continue;
+      items.push({
+        checked: match[1] === "x",
+        text: match[2],
+      });
+    }
+    return items;
+  }
+
+  private rewriteArchivedPlanText(text: string, fileName: string): string {
+    const activeRepoPath = `docs/plans/active/${fileName}`;
+    const completedRepoPath = `docs/plans/completed/${fileName}`;
+    return text
+      .replace(/Active plan path:/gu, "Completed plan path:")
+      .replace(new RegExp(escapeRegex(activeRepoPath), "gu"), completedRepoPath);
+  }
+
+  private normalizeDocumentText(text: string): string {
+    return `${this.normalizeLineEndings(text).replace(/\n+$/u, "")}\n`;
+  }
+
+  private normalizeLineEndings(text: string): string {
+    return text.replace(/\r\n/gu, "\n");
   }
 }

@@ -12,6 +12,7 @@ Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js
 
 - `orchestrator_resolve_category`
 - `orchestrator_read_plan_state`
+- `orchestrator_export_codex_todo`
 - `orchestrator_begin_task`
 - `orchestrator_acquire_write_lease`
 - `orchestrator_release_write_lease`
@@ -36,6 +37,10 @@ Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js
 - Lease-required categories fail closed without an active write lease.
 - `resolve_category` returns both workflow category and the default delegation bias for that category.
 - `next_action` derives a deterministic parent move from plan plus runtime state and now exposes whether child intervention is required.
+- `begin_task` seeds the first unchecked step when active work starts.
+- `complete_step` auto-advances the current-step pointer to the next unchecked step when available.
+- `next_action` and `watchdog_tick` expose step-sync guidance so parents can repair drift instead of batching late step updates.
+- `export_codex_todo` projects file-backed plan state into a mirror-ready Codex native todo snapshot instead of creating a second source of truth.
 - `question_gate` rejects optional expansion questions by default.
 - `assess_subagent_completion` prevents child self-report from being treated as task completion.
 - `completion_guard` fails closed before parent completion.
@@ -53,3 +58,34 @@ Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js
 - `dispatch_role`
 - `intervention_reason`
 - `dispatch_mode`
+- `current_step_label`
+- `current_step_text`
+- `next_step_label`
+- `next_step_text`
+- `remaining_step_count`
+- `step_sync_status`
+- `step_sync_action`
+
+### `orchestrator_begin_task`
+
+- seeds the first unchecked step into `Current Step` when the task enters active execution
+- returns the same step-guidance fields used by `next_action`
+
+### `orchestrator_complete_step`
+
+- `auto_advanced`
+- returns the updated step-guidance fields after the checked step is recorded
+
+### `orchestrator_export_codex_todo`
+
+- `items`
+- `active_task_id`
+- `active_task_title`
+- `current_step_label`
+- `current_step_text`
+- `remaining_step_count`
+- `step_sync_status`
+- `step_sync_action`
+- `open_acceptance_items`
+
+Use this payload as the parent-facing bridge into Codex native `update_plan`. The implementation plan remains authoritative; the exported todo is only a mirror.

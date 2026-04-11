@@ -20,7 +20,7 @@
 ## Artifact Model
 
 - Spec path: `docs/specs/2026-04-10-codex-orchestrator-installer-design.md`
-- Active plan path: `docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-10-codex-orchestrator-installer-implementation.md`
 - Script path: `scripts/install-codex-orchestrator.sh`
 - Test path: `tests/install-script.test.ts`
 - Config enablement target: `~/.codex/config.toml`
@@ -73,7 +73,7 @@ Wave 4:
 
 **Files:**
 - Create: `docs/specs/2026-04-10-codex-orchestrator-installer-design.md`
-- Create: `docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md`
+- Create: `docs/plans/completed/2026-04-10-codex-orchestrator-installer-implementation.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
 - Modify: `task_plan.md`
@@ -97,7 +97,7 @@ Wave 4:
 **Files:**
 - Create: `scripts/install-codex-orchestrator.sh`
 - Modify: `README.md`
-- Modify: `docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md`
+- Modify: `docs/plans/completed/2026-04-10-codex-orchestrator-installer-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** backend-developer
@@ -118,7 +118,7 @@ Wave 4:
 - Modify: `scripts/install-codex-orchestrator.sh`
 - Modify: `tests/install-script.test.ts`
 - Modify: `docs/specs/2026-04-10-codex-orchestrator-installer-design.md`
-- Modify: `docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md`
+- Modify: `docs/plans/completed/2026-04-10-codex-orchestrator-installer-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** backend-developer
@@ -140,7 +140,7 @@ Wave 4:
 - Modify: `README.md`
 - Modify: `progress.md`
 - Modify: `findings.md`
-- Modify: `docs/plans/active/2026-04-10-codex-orchestrator-installer-implementation.md`
+- Modify: `docs/plans/completed/2026-04-10-codex-orchestrator-installer-implementation.md`
 
 **Category:** review
 **Owner Role:** harness-evaluator

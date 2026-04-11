@@ -2,15 +2,15 @@
 
 ## Goal
 
-Enforce a hard repository rule that markdown docs must not contain machine-specific absolute filesystem paths, and repair legacy absolute-path docs automatically on first touch.
+Make Codex's native todo UI mirror the active implementation plan so progress appears through built-in `update_plan` instead of a separate ad hoc todo list.
 
 ## Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Create doc-path policy spec and execution plan | complete | New policy contract and active plan are in place and routing docs point at them |
-| 2. Add absolute-path regression coverage | complete | Markdown docs now have a regression scan for machine-specific absolute paths |
-| 3. Repair legacy docs and sync routing surfaces | complete | Routing docs, product docs, and install examples are now portable and repo-relative |
+| 1. Create native-todo mirroring spec and execution plan | complete | The spec and implementation plan established native Codex todo mirroring as the active execution contract |
+| 2. Add regression coverage for mirror-ready todo export | complete | Red-phase tests now cover native todo export for active-task progress and final acceptance |
+| 3. Implement plugin-side native todo projection and workflow guidance | complete | The plugin now exports a mirror-ready Codex todo snapshot and the workflow requires native mirroring |
 
 ## Current Decisions
 
@@ -34,6 +34,12 @@ Enforce a hard repository rule that markdown docs must not contain machine-speci
 - The root install guide should be the fastest path for agent-driven install and verification work.
 - Repository markdown docs must use repo-relative artifact links and portable placeholders instead of machine-specific absolute filesystem paths.
 - Legacy absolute-path docs are hygiene debt and should be repaired on first touch without escalating to the user.
+- Completed implementation plans should not remain under `docs/plans/active/`; stale plan placement is hygiene debt and should be repaired automatically.
+- Gradual progress requires plugin-side step guidance, not only prompt-level advice, because parents otherwise batch step updates too easily.
+- Incremental step synchronization should be contract-driven: task start seeds the first open step, step completion advances the pointer, and next-action/watchdog outputs expose drift explicitly.
+- Plan-path reconciliation must handle repo-relative `docs/plans/active/...` inputs as well as absolute filesystem paths, because the routing docs intentionally expose relative artifact links.
+- The implementation plan remains the progress source of truth; Codex native todo should be a mirror of that plan, not an independent planning surface.
+- The correct Codex integration point is a mirror-ready export tool plus parent-owned `update_plan`, not an attempt to make the plugin itself mutate native UI state.
 
 ## Open Questions
 
@@ -70,3 +76,11 @@ Enforce a hard repository rule that markdown docs must not contain machine-speci
 - Added `install.md`, linked it from the routing surfaces, and added a regression test that keeps the guide aligned with the supported installer path
 - Began relative doc-path policy work so repo docs stop embedding maintainer-specific filesystem locations
 - Repaired legacy absolute-path markdown links in routing and product docs, replaced hard-coded machine-path examples with portable forms, and added a regression scan that fails when absolute filesystem paths reappear
+- Began completed-plan auto-archive work so fully accepted plans leave `docs/plans/active/` automatically and historical stale placement is repaired on first touch
+- Added completed-plan auto-archive to `PlanDocument`, including stale active-path resolution, CRLF-safe parsing, and legacy-plan support when older plans omit a `Final Acceptance` section
+- Archived the repository's historical completed plans out of `docs/plans/active/` and repaired routing/agent guidance to treat `active/` as live work and `completed/` as history
+- Began incremental step synchronization work so parent agents receive explicit step guidance instead of relying on late batch step updates
+- Completed incremental step synchronization so task start seeds the first unchecked step, step completion auto-advances, and next-action/watchdog outputs surface step drift explicitly
+- Fixed completed-plan auto-archive for repo-relative plan paths so completed work still migrates cleanly when agents follow repository-relative routing links
+- Began native Codex todo mirroring work so parents can drive the built-in `update_plan` from the active implementation plan instead of inventing a separate todo list
+- Completed native Codex todo mirroring so the plugin exports a mirror-ready todo snapshot and the parent workflow now treats native `update_plan` as the canonical UI surface for plan progress

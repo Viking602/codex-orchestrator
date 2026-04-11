@@ -20,7 +20,7 @@
 ## Artifact Model
 
 - Spec path: `docs/specs/2026-04-08-codex-orchestrator-plugin-design.md`
-- Active plan path: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Completed plan path: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 - Routing docs:
   - `AGENTS.md`
   - `docs/index.md`
@@ -101,7 +101,7 @@ Critical Path:
 - Create: `findings.md`
 - Create: `progress.md`
 - Create: `docs/specs/2026-04-08-codex-orchestrator-plugin-design.md`
-- Modify: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Modify: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 
 **Category:** plan
 **Owner Role:** harness-planner
@@ -140,7 +140,7 @@ Expected:
 **Files:**
 - Create: `docs/architecture/category-contract.md`
 - Create: `docs/architecture/runtime-state-schema.md`
-- Modify: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Modify: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 - Modify: `findings.md`
 
 **Category:** plan
@@ -179,7 +179,7 @@ Expected:
 **Files:**
 - Create: `docs/architecture/mcp-tool-contract.md`
 - Modify: `docs/architecture/runtime-state-schema.md`
-- Modify: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Modify: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 - Modify: `findings.md`
 
 **Category:** plan
@@ -218,7 +218,7 @@ Expected:
 **Files:**
 - Create: `docs/architecture/agent-contracts.md`
 - Modify: `docs/architecture/category-contract.md`
-- Modify: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Modify: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 
 **Category:** plan
 **Owner Role:** harness-planner
@@ -258,7 +258,7 @@ Expected:
 - Create: `docs/decisions/2026-04-08-file-backed-execution-truth.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/index.md`
-- Modify: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Modify: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 
 **Category:** plan
 **Owner Role:** harness-doc-gardener
@@ -301,7 +301,7 @@ Expected:
 - Create: `plugins/codex-orchestrator/mcp/server.ts`
 - Create: `plugins/codex-orchestrator/mcp/tools/`
 - Create: `plugins/codex-orchestrator/mcp/db/`
-- Modify: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Modify: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 
 **Category:** backend-impl
 **Owner Role:** mcp-developer
@@ -338,7 +338,7 @@ Expected:
 
 **Files:**
 - Modify: `docs/specs/2026-04-08-codex-orchestrator-plugin-design.md`
-- Modify: `docs/plans/active/2026-04-08-codex-orchestrator-plugin-implementation.md`
+- Modify: `docs/plans/completed/2026-04-08-codex-orchestrator-plugin-implementation.md`
 - Modify: `docs/index.md`
 - Modify: `progress.md`
 

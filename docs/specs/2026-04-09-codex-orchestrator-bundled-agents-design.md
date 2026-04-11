@@ -75,7 +75,7 @@ These roles match the plugin's preferred implementation and research categories 
 Each bundled agent should be tightened around the current plugin:
 
 - read `docs/index.md` first
-- respect `docs/specs/` and `docs/plans/active/` as canonical durable roots
+- respect `docs/specs/`, `docs/plans/active/`, and `docs/plans/completed/` as canonical durable roots
 - treat the parent agent as owner of orchestrator MCP tool calls and plan acceptance
 - optimize instructions for `plugins/codex-orchestrator/**`, not for general-purpose repository work
 - require routing-doc updates when plugin entrypoints or current docs move

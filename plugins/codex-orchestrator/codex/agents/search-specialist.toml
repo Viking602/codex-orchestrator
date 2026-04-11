@@ -14,7 +14,7 @@ Optimize for the fastest high-signal handoff to planning, implementation, or rev
 
 <search_priority>
 1. docs/index.md and AGENTS.md
-2. docs/specs/ and docs/plans/active/
+2. docs/specs/, docs/plans/active/, and docs/plans/completed/
 3. docs/architecture/
 4. plugins/codex-orchestrator/src/
 5. plugins/codex-orchestrator/tests/
