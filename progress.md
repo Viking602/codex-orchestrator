@@ -29,3 +29,14 @@
 - Switched routing docs so the installer plan is now the active execution anchor.
 - Implemented the installer script with link/copy modes, dry-run, marketplace registration, and safe agent backup behavior.
 - Verified installer tests pass and documented the one-click install flow in the README.
+
+## 2026-04-11
+
+- Created the marketplace-install design spec and active implementation plan.
+- Switched routing docs so the marketplace-install plan became the execution anchor.
+- Added a repo-local marketplace at `.agents/plugins/marketplace.json` so Codex can discover the plugin from the repository surface.
+- Updated the installer to target the current Codex plugin model: personal plugin source path, personal marketplace entry, installed cache copy, and plugin enabled state.
+- Removed forced `features.apps = true` writes from plugin installation.
+- Expanded installer tests to cover repo marketplace metadata, personal marketplace bootstrap, installed cache staging, and config preservation behavior.
+- Verified the installer tests pass with the new marketplace/bootstrap behavior.
+- Installed the plugin into the local Windows Codex home under `%USERPROFILE%\.codex` and wrote the matching personal marketplace/config entries.

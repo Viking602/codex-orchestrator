@@ -2,15 +2,15 @@
 
 ## Goal
 
-Add a one-click installer so the plugin, marketplace entry, and bundled agents can be installed into a local Codex environment with one command.
+Align codex-orchestrator with Codex's marketplace-driven installation model and bootstrap a real local install into the user's Codex environment.
 
 ## Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Create installer spec and execution plan | complete | New active plan and design spec created, routing switched |
-| 2. Implement installer script | complete | Plugin install, marketplace registration, and agent install behavior implemented |
-| 3. Validate installer behavior and sync docs | complete | Tests passed and docs updated |
+| 1. Create marketplace-install spec and execution plan | complete | New design spec and active plan created, routing switched |
+| 2. Add repo marketplace and update installer behavior | complete | Repo discovery, personal bootstrap install, and installed cache staging implemented |
+| 3. Validate marketplace/bootstrap install and sync docs | complete | Tests passed, docs updated, and local Windows Codex install performed |
 
 ## Current Decisions
 
@@ -25,12 +25,12 @@ Add a one-click installer so the plugin, marketplace entry, and bundled agents c
 - The plugin should ship only the happy-path default roles, not a full third-party agent catalog.
 - Bundled agent files under `plugins/codex-orchestrator/codex/agents/` are plugin-owned local derivatives.
 - The default implementation role should stay generic to coding work and avoid both niche MCP specialization and overfitting to one language persona.
-- Installer work is now the active execution track.
-- Installer implementation is now complete and validated.
+- Marketplace-install work is now complete and validated.
 
 ## Open Questions
 
 - Host support for automatic registration of plugin-bundled `.toml` agents still depends on the surrounding Codex runtime, so the bundle docs must keep a fallback install path explicit.
+- The Codex app still needs a restart after external marketplace/install changes before its plugin browser picks up the new local source and enabled state.
 
 ## Completed This Session
 
@@ -49,3 +49,5 @@ Add a one-click installer so the plugin, marketplace entry, and bundled agents c
 - Added plugin-specific agent-surface wiring and drift tests for category preferred roles
 - Created the installer design spec and installer active implementation plan
 - Implemented the one-click installer script and verified dry-run, copy install, marketplace registration, and agent backup behavior
+- Began marketplace-install redesign so installation aligns with Codex's current plugin marketplace model
+- Added a repo-local marketplace, updated the installer to bootstrap personal plugin source/cache/config state, and installed the plugin into the local Windows Codex home

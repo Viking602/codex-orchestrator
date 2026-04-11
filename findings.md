@@ -27,3 +27,7 @@
 - `harness-generator` is not a good default bundled implementer here because the plugin already has a stronger generic implementation role.
 - Bundled agent files should be treated as plugin-owned derivatives with source attribution, not as runtime pointers back to the source repos.
 - Category preferred-role drift is cheap to test and should fail in CI-local verification before bundle docs silently go stale.
+- Current Codex plugin installation is marketplace-driven: a repo or personal `marketplace.json` is the supported discovery surface for local plugins.
+- A practical local install needs both the personal plugin source path under `~/.codex/plugins/` and the installed cache copy under `~/.codex/plugins/cache/<marketplace>/<plugin>/local`.
+- Plugin installation should manage `[plugins."codex-orchestrator@local-plugins"] enabled = true` without forcing `features.apps = true`, because the latter is a separate ChatGPT Apps/connectors feature flag.
+- On Windows, bootstrap installs should target `%USERPROFILE%\.codex` instead of a WSL home whenever the goal is to install into the native Codex app.
