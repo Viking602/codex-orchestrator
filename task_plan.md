@@ -2,15 +2,15 @@
 
 ## Goal
 
-Make Codex's native todo UI mirror the active implementation plan so progress appears through built-in `update_plan` instead of a separate ad hoc todo list.
+Remove the shell-installer path from the current install flow and replace it with a direct Codex guide for plugin installation and updates.
 
 ## Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Create native-todo mirroring spec and execution plan | complete | The spec and implementation plan established native Codex todo mirroring as the active execution contract |
-| 2. Add regression coverage for mirror-ready todo export | complete | Red-phase tests now cover native todo export for active-task progress and final acceptance |
-| 3. Implement plugin-side native todo projection and workflow guidance | complete | The plugin now exports a mirror-ready Codex todo snapshot and the workflow requires native mirroring |
+| 1. Create Codex-guided install spec and execution plan | completed | The new spec and active plan are now the execution anchor for direct install/update guidance |
+| 2. Add regression coverage for the guide contract | completed | The guide-contract tests replaced the old installer-script suite and captured the red phase |
+| 3. Replace script-first install flow with direct Codex guidance | completed | The docs, tests, and active repository surface now route through the direct guide and the closeout plan is archived |
 
 ## Current Decisions
 
@@ -30,8 +30,9 @@ Make Codex's native todo UI mirror the active implementation plan so progress ap
 - The installer should manage the active global `AGENTS` file so default routing survives outside this repository's local chat history.
 - Delegation preference should be part of the category contract instead of being implicit in role names or parent prose.
 - Parent orchestration should remain the control plane while ordinary plan, research, implementation, and review work bias to child execution.
-- AI-facing installation guidance should point at the installer script and verification commands, not at manual config edits.
+- AI-facing installation guidance should instruct Codex to reconcile plugin files directly instead of routing through a repository-owned installer wrapper.
 - The root install guide should be the fastest path for agent-driven install and verification work.
+- Install and update should share one idempotent Codex-driven reconcile flow across plugin files, marketplace state, config, AGENTS, and bundled agents.
 - Repository markdown docs must use repo-relative artifact links and portable placeholders instead of machine-specific absolute filesystem paths.
 - Legacy absolute-path docs are hygiene debt and should be repaired on first touch without escalating to the user.
 - Completed implementation plans should not remain under `docs/plans/active/`; stale plan placement is hygiene debt and should be repaired automatically.
@@ -40,6 +41,7 @@ Make Codex's native todo UI mirror the active implementation plan so progress ap
 - Plan-path reconciliation must handle repo-relative `docs/plans/active/...` inputs as well as absolute filesystem paths, because the routing docs intentionally expose relative artifact links.
 - The implementation plan remains the progress source of truth; Codex native todo should be a mirror of that plan, not an independent planning surface.
 - The correct Codex integration point is a mirror-ready export tool plus parent-owned `update_plan`, not an attempt to make the plugin itself mutate native UI state.
+- Current install/update guidance should target Codex directly; repository-owned wrapper scripts are no longer the desired primary interface.
 
 ## Open Questions
 
@@ -84,3 +86,6 @@ Make Codex's native todo UI mirror the active implementation plan so progress ap
 - Fixed completed-plan auto-archive for repo-relative plan paths so completed work still migrates cleanly when agents follow repository-relative routing links
 - Began native Codex todo mirroring work so parents can drive the built-in `update_plan` from the active implementation plan instead of inventing a separate todo list
 - Completed native Codex todo mirroring so the plugin exports a mirror-ready todo snapshot and the parent workflow now treats native `update_plan` as the canonical UI surface for plan progress
+- Began Codex-guided install work so installation and updates stop routing through the repository-owned shell wrapper
+- Replaced the shell-installer-first install surface with a direct Codex install/update guide, deleted the repository-owned installer script, and renamed the regression suite to `tests/install-guide.test.ts`
+- Verified the guide-contract suite and full repository test suite, then archived the completed Codex-guided install plan out of `docs/plans/active/`

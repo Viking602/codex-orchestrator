@@ -55,3 +55,6 @@
 - The plugin cannot and should not own native Codex UI mutation directly; the right control-plane split is file-backed truth inside the plugin and parent-owned `update_plan` updates outside it.
 - A dedicated mirror export is necessary because `read_plan_state` alone leaves too much room for parent improvisation about which item should be `in_progress` and how current-step detail should appear.
 - Native todo mirroring must be expressed in both repository-local guidance and installer-managed global guidance, or new threads outside this repository will drift back toward separate chat todo lists.
+- The repository-owned shell installer had become the wrong abstraction for this project; the supported install/update interface now needs to be a Codex-readable reconcile guide, not another wrapper layer.
+- Install and update are the same operation here: reconcile plugin-owned targets, refresh managed guidance, verify, and restart Codex if external state changed.
+- The useful regression boundary is the guide contract and active repository surface, not the old shell wrapper's internal behavior.

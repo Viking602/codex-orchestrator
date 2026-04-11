@@ -3,7 +3,7 @@
 ## Start Here
 
 - [Repository map](../AGENTS.md)
-- [Current design spec](specs/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-design.md)
+- [Current design spec](specs/2026-04-11-codex-orchestrator-codex-guided-install-design.md)
 - [Phase 2 design spec](specs/2026-04-09-codex-orchestrator-phase-2-design.md)
 - [Phase 3 design spec](specs/2026-04-09-codex-orchestrator-phase-3-design.md)
 - [Installer design spec](specs/2026-04-10-codex-orchestrator-installer-design.md)
@@ -12,12 +12,13 @@
 - [Delegation-first dispatch design spec](specs/2026-04-11-codex-orchestrator-delegation-first-dispatch-design.md)
 - [Incremental step synchronization design spec](specs/2026-04-11-codex-orchestrator-incremental-step-sync-design.md)
 - [Native Codex todo mirroring design spec](specs/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-design.md)
+- [Codex-guided install design spec](specs/2026-04-11-codex-orchestrator-codex-guided-install-design.md)
 - [Install guide design spec](specs/2026-04-11-codex-orchestrator-install-guide-design.md)
 - [Completed plan auto-archive design spec](specs/2026-04-11-codex-orchestrator-plan-archive-design.md)
 - [Relative doc-path policy design spec](specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md)
 - [Bundled agents architecture note](architecture/bundled-agent-bundle.md)
 - [Root install guide](../install.md)
-- [Most recent completed plan](plans/completed/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md)
+- [Most recent completed implementation plan](plans/completed/2026-04-11-codex-orchestrator-codex-guided-install-implementation.md)
 
 ## Architecture
 
@@ -52,7 +53,7 @@
 - When native Codex `update_plan` is available, the parent should mirror the active plan into that surface instead of creating a separate chat todo.
 - Completed plans auto-move out of `active/` once all top-level TODO items are checked and any `Final Acceptance` items are closed.
 - There is currently no open active implementation plan.
-- The most recent completed plan is [2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md](plans/completed/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md).
+- The most recent completed implementation plan is [2026-04-11-codex-orchestrator-codex-guided-install-implementation.md](plans/completed/2026-04-11-codex-orchestrator-codex-guided-install-implementation.md).
 
 ## Specs
 

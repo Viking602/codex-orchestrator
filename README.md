@@ -2,7 +2,7 @@
 
 Codex Orchestrator is a local Codex plugin that turns specs, implementation plans, runtime orchestration state, review gates, and completion rules into repository-backed artifacts.
 
-For an AI-oriented install and verification entrypoint, read [`install.md`](./install.md).
+For the supported Codex-guided install and update flow, read [`install.md`](./install.md).
 
 ## Repo Marketplace
 
@@ -15,15 +15,11 @@ When this repository is open in Codex, the Plugins directory can discover:
 
 If the source does not appear immediately, restart Codex after opening the repository.
 
-## Bootstrap Install
+## Codex-Guided Install
 
-Run the installer from the repository root:
+Use [`install.md`](./install.md) as the source of truth. Codex should perform the reconciliation directly instead of routing through a repository-owned shell installer.
 
-```bash
-bash scripts/install-codex-orchestrator.sh --copy
-```
-
-What it installs:
+What the guide tells Codex to install or update:
 
 - plugin source files into `~/.codex/plugins/codex-orchestrator`
 - a personal marketplace entry in `~/.agents/plugins/marketplace.json`
@@ -32,27 +28,6 @@ What it installs:
 - bundled agent files into `~/.codex/agents`
 - a plugin enablement block in `~/.codex/config.toml`
 
-On Windows, the script prefers `%USERPROFILE%` when it is available so the install lands in the Windows Codex home instead of a WSL-only home.
+The direct guide also covers updates, global `AGENTS` reconciliation, bundled-agent refresh, verification commands, and fresh-process validation.
 
-Useful options:
-
-```bash
-# Preview actions without writing files
-bash scripts/install-codex-orchestrator.sh --dry-run
-
-# Use symlinks instead of copied files for local development
-bash scripts/install-codex-orchestrator.sh --link
-
-# Override install paths for testing or custom environments
-bash scripts/install-codex-orchestrator.sh \
-  --plugin-home /custom/.codex/plugins \
-  --marketplace-path /custom/.agents/plugins/marketplace.json \
-  --agent-dir /custom/.codex/agents \
-  --global-agents-path /custom/.codex/AGENTS.md
-```
-
-The installer backs up conflicting agent files before replacing them.
-It also writes or updates `[plugins."codex-orchestrator@local-plugins"]` in the Codex config and stages the installed cache copy that Codex loads.
-It also writes an idempotent `codex-orchestrator` guidance block into the active global `AGENTS` file so fresh Codex runs default to this workflow for repository tasks.
-
-After running the installer, restart Codex so the personal marketplace, installed plugin state, and global guidance are reloaded. New threads after restart should default to the `codex-orchestrator` workflow for normal repository tasks without requiring manual `@codex-orchestrator` invocation.
+After Codex finishes the install or update steps, restart Codex so the personal marketplace, installed plugin state, and global guidance are reloaded. New threads after restart should default to the `codex-orchestrator` workflow for normal repository tasks without requiring manual `@codex-orchestrator` invocation.
