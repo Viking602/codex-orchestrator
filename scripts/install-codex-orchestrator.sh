@@ -1,17 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-$0}"
+SCRIPT_DIR="$(cd "$(dirname "${SCRIPT_SOURCE}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PLUGIN_SOURCE="${REPO_ROOT}/plugins/codex-orchestrator"
 
+normalize_home_root() {
+  if [[ -n "${USERPROFILE:-}" ]]; then
+    case "${USERPROFILE}" in
+      [A-Za-z]:\\*)
+        printf '%s' "${USERPROFILE}" | sed -E 's#^([A-Za-z]):#/\L\1#; s#\\#/#g; s#^/([a-z])#/mnt/\1#'
+        return
+        ;;
+      *)
+        printf '%s' "${USERPROFILE}"
+        return
+        ;;
+    esac
+  fi
+
+  printf '%s' "${HOME}"
+}
+
+HOST_HOME="$(normalize_home_root)"
+CODEX_HOME="${HOST_HOME}/.codex"
+
 MODE="link"
 DRY_RUN=0
-PLUGIN_HOME="${HOME}/plugins"
+PLUGIN_HOME="${CODEX_HOME}/plugins"
 PLUGIN_TARGET="${PLUGIN_HOME}/codex-orchestrator"
-MARKETPLACE_PATH="${HOME}/.agents/plugins/marketplace.json"
-AGENT_DIR="${HOME}/.codex/agents"
-CONFIG_PATH="${HOME}/.codex/config.toml"
+MARKETPLACE_PATH="${HOST_HOME}/.agents/plugins/marketplace.json"
+AGENT_DIR="${CODEX_HOME}/agents"
+CONFIG_PATH="${CODEX_HOME}/config.toml"
+CACHE_TARGET="${PLUGIN_HOME}/cache/local-plugins/codex-orchestrator/local"
 
 usage() {
   cat <<'EOF'
@@ -21,7 +43,7 @@ Options:
   --copy                    Copy plugin files instead of creating a symlink
   --link                    Symlink plugin files (default)
   --dry-run                 Print actions without modifying the filesystem
-  --plugin-home <dir>       Override plugin home directory (default: ~/plugins)
+  --plugin-home <dir>       Override plugin home directory (default: ~/.codex/plugins)
   --marketplace-path <file> Override marketplace.json path (default: ~/.agents/plugins/marketplace.json)
   --agent-dir <dir>         Override Codex agent install directory (default: ~/.codex/agents)
   --config-path <file>      Override Codex config path (default: ~/.codex/config.toml)
@@ -53,15 +75,6 @@ fs.mkdirSync(path.dirname(configPath), { recursive: true });
 
 const sectionHeader = '[plugins."codex-orchestrator@local-plugins"]';
 let text = fs.existsSync(configPath) ? fs.readFileSync(configPath, "utf8") : "";
-
-if (/^\s*apps\s*=\s*false\s*$/m.test(text)) {
-  text = text.replace(/^\s*apps\s*=\s*false\s*$/m, "apps = true");
-} else if (text.includes("[features]") && !/^\s*apps\s*=\s*(true|false)\s*$/m.test(text)) {
-  text = text.replace(/\[features\]\n/, "[features]\napps = true\n");
-} else if (!text.includes("[features]")) {
-  const prefix = text.trimEnd().length === 0 ? "" : `${text.trimEnd()}\n\n`;
-  text = `${prefix}[features]\napps = true\n`;
-}
 
 if (text.includes(sectionHeader)) {
   const sectionIndex = text.indexOf(sectionHeader);
@@ -109,17 +122,23 @@ write_marketplace() {
     return
   fi
 
-  MARKETPLACE_TARGET="${marketplace_path}" PLUGIN_ENTRY_PATH="./plugins/codex-orchestrator" node <<'EOF'
+  MARKETPLACE_TARGET="${marketplace_path}" PLUGIN_TARGET_PATH="${target_plugin}" node <<'EOF'
 const fs = require("node:fs");
 const path = require("node:path");
 
 const marketplacePath = process.env.MARKETPLACE_TARGET;
-const pluginPath = process.env.PLUGIN_ENTRY_PATH;
+const pluginPath = process.env.PLUGIN_TARGET_PATH;
 if (!marketplacePath || !pluginPath) {
   throw new Error("Missing marketplace env");
 }
 
 fs.mkdirSync(path.dirname(marketplacePath), { recursive: true });
+
+const marketplaceRoot = path.resolve(path.dirname(marketplacePath), "..", "..");
+const relativePluginPath = path.relative(marketplaceRoot, pluginPath).split(path.sep).join("/");
+const pluginEntryPath = relativePluginPath.startsWith("./") || relativePluginPath.startsWith("../")
+  ? relativePluginPath
+  : `./${relativePluginPath}`;
 
 let data;
 if (fs.existsSync(marketplacePath)) {
@@ -142,7 +161,7 @@ const entry = {
   name: "codex-orchestrator",
   source: {
     source: "local",
-    path: pluginPath,
+    path: pluginEntryPath,
   },
   policy: {
     installation: "AVAILABLE",
@@ -215,6 +234,26 @@ install_plugin_dir() {
   fi
 }
 
+install_cache_dir() {
+  local source_dir="$1"
+  local target_dir="$2"
+  local mode="$3"
+
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    printf '[dry-run] install plugin cache %s -> %s (%s)\n' "${source_dir}" "${target_dir}" "${mode}"
+    return
+  fi
+
+  mkdir -p "$(dirname "${target_dir}")"
+  rm -rf "${target_dir}"
+
+  if [[ "${mode}" == "link" ]]; then
+    ln -s "${source_dir}" "${target_dir}"
+  else
+    cp -R "${source_dir}" "${target_dir}"
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --copy)
@@ -232,6 +271,7 @@ while [[ $# -gt 0 ]]; do
     --plugin-home)
       PLUGIN_HOME="$2"
       PLUGIN_TARGET="${PLUGIN_HOME}/codex-orchestrator"
+      CACHE_TARGET="${PLUGIN_HOME}/cache/local-plugins/codex-orchestrator/local"
       shift 2
       ;;
     --marketplace-path)
@@ -270,17 +310,20 @@ fi
 
 log "source plugin: ${PLUGIN_SOURCE}"
 log "target plugin: ${PLUGIN_TARGET}"
+log "installed cache: ${CACHE_TARGET}"
 log "marketplace: ${MARKETPLACE_PATH}"
 log "agent dir: ${AGENT_DIR}"
 log "config path: ${CONFIG_PATH}"
 log "mode: ${MODE}"
 
 ensure_dir "${PLUGIN_HOME}"
+ensure_dir "$(dirname "${CACHE_TARGET}")"
 ensure_dir "${AGENT_DIR}"
 ensure_dir "$(dirname "${MARKETPLACE_PATH}")"
 ensure_dir "$(dirname "${CONFIG_PATH}")"
 
 install_plugin_dir "${PLUGIN_SOURCE}" "${PLUGIN_TARGET}" "${MODE}"
+install_cache_dir "${PLUGIN_TARGET}" "${CACHE_TARGET}" "${MODE}"
 write_marketplace "${PLUGIN_TARGET}" "${MARKETPLACE_PATH}"
 write_codex_config "${CONFIG_PATH}"
 
@@ -293,6 +336,7 @@ if [[ "${DRY_RUN}" -eq 1 ]]; then
   log "dry-run only; no files were changed"
 else
   log "plugin installed at ${PLUGIN_TARGET}"
+  log "installed cache staged at ${CACHE_TARGET}"
   log "marketplace registered at ${MARKETPLACE_PATH}"
   log "agents installed into ${AGENT_DIR}"
   log "plugin enabled in ${CONFIG_PATH}"
