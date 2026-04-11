@@ -31,3 +31,17 @@
 - A practical local install needs both the personal plugin source path under `~/.codex/plugins/` and the installed cache copy under `~/.codex/plugins/cache/<marketplace>/<plugin>/local`.
 - Plugin installation should manage `[plugins."codex-orchestrator@local-plugins"] enabled = true` without forcing `features.apps = true`, because the latter is a separate ChatGPT Apps/connectors feature flag.
 - On Windows, bootstrap installs should target `%USERPROFILE%\.codex` instead of a WSL home whenever the goal is to install into the native Codex app.
+- Plugin installation alone does not make Codex default to that plugin; durable default routing needs `AGENTS.md` guidance plus stronger skill metadata.
+- The active global guidance file is whichever of `~/.codex/AGENTS.override.md` or `~/.codex/AGENTS.md` Codex will actually read, so installer bootstrap must target the active file instead of assuming one hard-coded path.
+- `interface.defaultPrompt` is useful install-surface copy, but it is not a reliable enforcement mechanism for default workflow routing.
+- A fresh `codex exec` run is a practical verification target for default-workflow routing because it rebuilds the instruction chain outside the current chat session.
+- Bundled fallback agents still trigger duplicate-role warnings in the host when the same role names already exist under `~/.codex/agents`; the warnings are non-fatal but still noisy.
+- Delegation preference has to live in the category contract, not only in role names or prose, or the parent will drift back toward local execution.
+- `orchestrator_next_action` needs a separate child-intervention signal in addition to the action name, because control-plane steps such as lease acquisition can precede child-owned execution.
+- Terminal `next_action` branches need the same payload shape as in-progress branches or parent callers will hit schema holes exactly where completion logic is most sensitive.
+- Missing or invalid `delegation_preference` should fail closed at category-load time instead of silently reverting to parent-local execution.
+- An AI-facing install guide should explicitly tell the agent to run the installer and verification commands itself, or the workflow will drift back toward manual user intervention.
+- A lightweight doc regression test is enough to keep `install.md` anchored to the supported installer command and the key verification targets.
+- Machine-specific absolute filesystem paths in markdown docs are portability bugs and should be treated as repository defects, not style preferences.
+- Repo-relative artifact links and portable placeholders are sufficient for this repository's documentation surfaces; machine-specific absolute paths add no durable value.
+- Legacy absolute-path docs should be repaired automatically on first touch instead of being escalated as a user decision.

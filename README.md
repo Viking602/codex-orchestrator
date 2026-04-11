@@ -2,6 +2,8 @@
 
 Codex Orchestrator is a local Codex plugin that turns specs, implementation plans, runtime orchestration state, review gates, and completion rules into repository-backed artifacts.
 
+For an AI-oriented install and verification entrypoint, read [`install.md`](./install.md).
+
 ## Repo Marketplace
 
 This repository now ships a repo-local marketplace at [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json).
@@ -26,6 +28,7 @@ What it installs:
 - plugin source files into `~/.codex/plugins/codex-orchestrator`
 - a personal marketplace entry in `~/.agents/plugins/marketplace.json`
 - an installed plugin cache copy in `~/.codex/plugins/cache/local-plugins/codex-orchestrator/local`
+- a managed default-workflow block in the active global `AGENTS` file under `~/.codex/`
 - bundled agent files into `~/.codex/agents`
 - a plugin enablement block in `~/.codex/config.toml`
 
@@ -44,10 +47,12 @@ bash scripts/install-codex-orchestrator.sh --link
 bash scripts/install-codex-orchestrator.sh \
   --plugin-home /custom/.codex/plugins \
   --marketplace-path /custom/.agents/plugins/marketplace.json \
-  --agent-dir /custom/.codex/agents
+  --agent-dir /custom/.codex/agents \
+  --global-agents-path /custom/.codex/AGENTS.md
 ```
 
 The installer backs up conflicting agent files before replacing them.
 It also writes or updates `[plugins."codex-orchestrator@local-plugins"]` in the Codex config and stages the installed cache copy that Codex loads.
+It also writes an idempotent `codex-orchestrator` guidance block into the active global `AGENTS` file so fresh Codex runs default to this workflow for repository tasks.
 
-After running the installer, restart Codex so the personal marketplace and installed plugin state are reloaded.
+After running the installer, restart Codex so the personal marketplace, installed plugin state, and global guidance are reloaded. New threads after restart should default to the `codex-orchestrator` workflow for normal repository tasks without requiring manual `@codex-orchestrator` invocation.

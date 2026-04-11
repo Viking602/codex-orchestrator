@@ -6,5 +6,5 @@ Phase 1 focuses on replacing the core engineering workflow rather than every exp
 
 ## Published Docs
 
-- [Privacy Policy](/Users/viking/agents_dev/project03/docs/product/privacy-policy.md)
-- [Terms of Service](/Users/viking/agents_dev/project03/docs/product/terms-of-service.md)
+- [Privacy Policy](privacy-policy.md)
+- [Terms of Service](terms-of-service.md)

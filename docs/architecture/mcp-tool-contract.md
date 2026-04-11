@@ -34,7 +34,22 @@ Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js
 - Review recording rejects implementer-as-reviewer reuse.
 - Plan synchronization always writes to markdown instead of relying on chat state.
 - Lease-required categories fail closed without an active write lease.
-- `next_action` derives a deterministic parent move from plan plus runtime state.
+- `resolve_category` returns both workflow category and the default delegation bias for that category.
+- `next_action` derives a deterministic parent move from plan plus runtime state and now exposes whether child intervention is required.
 - `question_gate` rejects optional expansion questions by default.
 - `assess_subagent_completion` prevents child self-report from being treated as task completion.
 - `completion_guard` fails closed before parent completion.
+
+## Key Payload Fields
+
+### `orchestrator_resolve_category`
+
+- `delegation_preference`
+- `requires_subagent_default`
+
+### `orchestrator_next_action`
+
+- `requires_subagent`
+- `dispatch_role`
+- `intervention_reason`
+- `dispatch_mode`

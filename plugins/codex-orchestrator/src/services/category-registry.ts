@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { CategoryDefinition, CategoryResolution } from "../types.ts";
+import type { DelegationPreference } from "../types.ts";
 
 type RawCategory = {
   intent?: string;
@@ -10,6 +11,7 @@ type RawCategory = {
   requires_spec_review?: boolean;
   requires_quality_review?: boolean;
   parallelism?: string;
+  delegation_preference?: string;
   reuse_policy?: string;
   completion_contract?: string[];
 };
@@ -82,6 +84,7 @@ export class CategoryRegistry {
       requiresSpecReview: raw.requires_spec_review ?? false,
       requiresQualityReview: raw.requires_quality_review ?? false,
       parallelism: raw.parallelism ?? "single",
+      delegationPreference: normalizeDelegationPreference(id, raw.delegation_preference),
       reusePolicy: raw.reuse_policy ?? "no_reuse",
       completionContract: raw.completion_contract ?? [],
     }));
@@ -144,4 +147,14 @@ export class CategoryRegistry {
     }
     return definition;
   }
+}
+
+function normalizeDelegationPreference(categoryId: string, value: string | undefined): DelegationPreference {
+  if (value === undefined) {
+    throw new Error(`Category ${categoryId} is missing required delegation_preference`);
+  }
+  if (value === "parent-only" || value === "prefer-subagent" || value === "subagent-required") {
+    return value;
+  }
+  throw new Error(`Category ${categoryId} has invalid delegation_preference: ${value}`);
 }

@@ -5,6 +5,7 @@
 The parent orchestration layer owns:
 
 - category resolution
+- delegation decision interpretation
 - write lease acquisition and release
 - role dispatch
 - runtime state transitions
@@ -56,6 +57,18 @@ The parent should prefer `orchestrator_next_action` over informal reasoning when
 - whether to continue the same implementer
 - whether to re-run review
 - whether a task is ready for acceptance
+
+The parent should also treat the following `orchestrator_next_action` fields as authoritative:
+
+- `requires_subagent`
+- `dispatch_role`
+- `intervention_reason`
+- `dispatch_mode`
+
+Interpretation rule:
+
+- `requires_subagent = true` means the parent should dispatch or continue a child agent instead of performing the task work locally.
+- `requires_subagent = false` means the current step is parent-owned control-plane work.
 
 ## Parent Completion Accountability
 

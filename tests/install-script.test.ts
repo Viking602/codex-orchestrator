@@ -18,7 +18,10 @@ const currentDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(currentDir, "..");
 const scriptPath = join(repoRoot, "scripts", "install-codex-orchestrator.sh");
 const repoMarketplacePath = join(repoRoot, ".agents", "plugins", "marketplace.json");
+const installGuidePath = join(repoRoot, "install.md");
 const normalizedScriptPath = join(repoRoot, "scripts", ".install-codex-orchestrator.test.sh");
+const managedAgentsBlockBegin = "<!-- codex-orchestrator-default-workflow:begin -->";
+const managedAgentsBlockEnd = "<!-- codex-orchestrator-default-workflow:end -->";
 
 function toWslPath(path: string): string {
   return path.replace(/^([A-Za-z]):/u, (_, drive: string) => `/mnt/${drive.toLowerCase()}`)
@@ -35,6 +38,10 @@ function listFilesRecursive(root: string): string[] {
     const fullPath = join(root, entry.name);
     return entry.isDirectory() ? listFilesRecursive(fullPath) : [fullPath];
   });
+}
+
+function countOccurrences(text: string, pattern: string): number {
+  return text.split(pattern).length - 1;
 }
 
 function runInstaller(args: string[]): string {
@@ -83,12 +90,24 @@ test("repo marketplace advertises codex-orchestrator from the repository plugin 
   assert.equal(pluginEntry.category, "Coding");
 });
 
+test("install guide exists and documents the supported AI-driven install flow", () => {
+  assert.equal(existsSync(installGuidePath), true);
+
+  const installGuide = readFileSync(installGuidePath, "utf8");
+  assert.match(installGuide, /bash scripts\/install-codex-orchestrator\.sh --copy/u);
+  assert.match(installGuide, /do not ask the user to edit files by hand/i);
+  assert.match(installGuide, /~\/\.codex\/config\.toml/u);
+  assert.match(installGuide, /~\/\.codex\/AGENTS\.md/u);
+  assert.match(installGuide, /codex exec/u);
+});
+
 test("installer dry-run performs no writes", () => {
   const root = mkdtempSync(join(tmpdir(), "codex-orchestrator-install-"));
   const pluginHome = join(root, ".codex/plugins");
   const marketplace = join(root, ".agents/plugins/marketplace.json");
   const agentDir = join(root, ".codex/agents");
   const configPath = join(root, ".codex/config.toml");
+  const globalAgentsPath = join(root, ".codex/AGENTS.md");
 
   const output = runInstaller([
     "--dry-run",
@@ -96,6 +115,7 @@ test("installer dry-run performs no writes", () => {
     "--marketplace-path", marketplace,
     "--agent-dir", agentDir,
     "--config-path", configPath,
+    "--global-agents-path", globalAgentsPath,
   ]);
 
   assert.match(output, /\[dry-run\]/u);
@@ -104,14 +124,16 @@ test("installer dry-run performs no writes", () => {
   assert.equal(existsSync(marketplace), false);
   assert.equal(existsSync(agentDir), false);
   assert.equal(existsSync(configPath), false);
+  assert.equal(existsSync(globalAgentsPath), false);
 });
 
-test("installer copy mode bootstraps personal marketplace, cache install, and enabled state", () => {
+test("installer copy mode bootstraps personal marketplace, cache install, enabled state, and global AGENTS guidance", () => {
   const root = mkdtempSync(join(tmpdir(), "codex-orchestrator-install-"));
   const pluginHome = join(root, ".codex/plugins");
   const marketplace = join(root, ".agents/plugins/marketplace.json");
   const agentDir = join(root, ".codex/agents");
   const configPath = join(root, ".codex/config.toml");
+  const globalAgentsPath = join(root, ".codex/AGENTS.md");
   const installedPath = join(
     pluginHome,
     "cache/local-plugins/codex-orchestrator/local",
@@ -123,6 +145,7 @@ test("installer copy mode bootstraps personal marketplace, cache install, and en
     "--marketplace-path", marketplace,
     "--agent-dir", agentDir,
     "--config-path", configPath,
+    "--global-agents-path", globalAgentsPath,
   ]);
 
   assert.equal(existsSync(join(pluginHome, "codex-orchestrator/.codex-plugin/plugin.json")), true);
@@ -130,6 +153,7 @@ test("installer copy mode bootstraps personal marketplace, cache install, and en
   assert.equal(existsSync(marketplace), true);
   assert.equal(existsSync(join(agentDir, "backend-developer.toml")), true);
   assert.equal(existsSync(configPath), true);
+  assert.equal(existsSync(globalAgentsPath), true);
 
   const marketplaceJson = JSON.parse(readFileSync(marketplace, "utf8")) as {
     plugins: Array<{
@@ -148,6 +172,11 @@ test("installer copy mode bootstraps personal marketplace, cache install, and en
   assert.match(configText, /\[plugins\."codex-orchestrator@local-plugins"\]/u);
   assert.match(configText, /enabled = true/u);
   assert.doesNotMatch(configText, /apps = true/u);
+
+  const globalAgentsText = readFileSync(globalAgentsPath, "utf8");
+  assert.match(globalAgentsText, new RegExp(managedAgentsBlockBegin.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+  assert.match(globalAgentsText, /default workflow for repository tasks/u);
+  assert.match(globalAgentsText, /Generic process skills are fallback helpers/u);
 });
 
 test("installer preserves unrelated feature flags and backs up conflicting agents", () => {
@@ -156,6 +185,7 @@ test("installer preserves unrelated feature flags and backs up conflicting agent
   const marketplace = join(root, ".agents/plugins/marketplace.json");
   const agentDir = join(root, ".codex/agents");
   const configPath = join(root, ".codex/config.toml");
+  const globalAgentsPath = join(root, ".codex/AGENTS.md");
 
   mkdirSync(agentDir, { recursive: true });
   mkdirSync(dirname(configPath), { recursive: true });
@@ -172,6 +202,7 @@ test("installer preserves unrelated feature flags and backs up conflicting agent
     "--marketplace-path", marketplace,
     "--agent-dir", agentDir,
     "--config-path", configPath,
+    "--global-agents-path", globalAgentsPath,
   ]);
 
   const backupRoot = join(agentDir, ".codex-orchestrator-backups");
@@ -183,4 +214,34 @@ test("installer preserves unrelated feature flags and backs up conflicting agent
   assert.match(configText, /\[features\]\napps = false/u);
   assert.match(configText, /\[plugins\."codex-orchestrator@local-plugins"\]\nenabled = true/u);
   assert.doesNotMatch(configText, /apps = true/u);
+});
+
+test("installer preserves existing global AGENTS content and updates the managed block idempotently", () => {
+  const root = mkdtempSync(join(tmpdir(), "codex-orchestrator-install-"));
+  const pluginHome = join(root, ".codex/plugins");
+  const marketplace = join(root, ".agents/plugins/marketplace.json");
+  const agentDir = join(root, ".codex/agents");
+  const configPath = join(root, ".codex/config.toml");
+  const globalAgentsPath = join(root, ".codex/AGENTS.md");
+
+  mkdirSync(dirname(globalAgentsPath), { recursive: true });
+  writeFileSync(globalAgentsPath, "# Existing Guidance\n\n- keep this text\n", "utf8");
+
+  const args = [
+    "--copy",
+    "--plugin-home", pluginHome,
+    "--marketplace-path", marketplace,
+    "--agent-dir", agentDir,
+    "--config-path", configPath,
+    "--global-agents-path", globalAgentsPath,
+  ];
+
+  runInstaller(args);
+  runInstaller(args);
+
+  const globalAgentsText = readFileSync(globalAgentsPath, "utf8");
+  assert.match(globalAgentsText, /# Existing Guidance/u);
+  assert.match(globalAgentsText, /keep this text/u);
+  assert.equal(countOccurrences(globalAgentsText, managedAgentsBlockBegin), 1);
+  assert.equal(countOccurrences(globalAgentsText, managedAgentsBlockEnd), 1);
 });

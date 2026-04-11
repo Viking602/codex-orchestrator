@@ -7,6 +7,7 @@ requires_plan = false
 requires_spec_review = true
 requires_quality_review = true
 parallelism = "single"
+delegation_preference = "prefer-subagent"
 reuse_policy = "same_task_only"
 completion_contract = ["artifact_written", "plan_synced"]
 
@@ -19,6 +20,7 @@ requires_plan = false
 requires_spec_review = false
 requires_quality_review = false
 parallelism = "parallel"
+delegation_preference = "subagent-required"
 reuse_policy = "no_reuse"
 completion_contract = ["findings_recorded"]
 
@@ -31,6 +33,7 @@ requires_plan = true
 requires_spec_review = true
 requires_quality_review = true
 parallelism = "write-scope"
+delegation_preference = "subagent-required"
 reuse_policy = "same_task_same_role_same_scope"
 completion_contract = ["all_steps_checked", "verification_recorded", "spec_review_passed", "quality_review_passed", "task_accepted"]
 
@@ -43,5 +46,6 @@ requires_plan = true
 requires_spec_review = false
 requires_quality_review = false
 parallelism = "parallel"
+delegation_preference = "subagent-required"
 reuse_policy = "no_reuse"
 completion_contract = ["review_recorded"]

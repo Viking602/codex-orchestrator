@@ -95,6 +95,8 @@ export function createTools(deps: ToolDeps): ToolDefinition[] {
           requires_spec_review: resolution.category.requiresSpecReview,
           requires_quality_review: resolution.category.requiresQualityReview,
           parallelism: resolution.category.parallelism,
+          delegation_preference: resolution.category.delegationPreference,
+          requires_subagent_default: resolution.category.delegationPreference !== "parent-only",
           reuse_policy: resolution.category.reusePolicy,
         });
       },
@@ -601,19 +603,18 @@ export function createTools(deps: ToolDeps): ToolDefinition[] {
         if (!nextTask) {
           const openAcceptance = plan.uncheckedFinalAcceptanceItems();
           if (openAcceptance.length > 0) {
-            return result({
-              plan_id: planId,
+            return result(shapeNextActionPayload(planId, withDelegationMetadata(undefined, {
               action: "complete_final_acceptance",
               requires_write_lease: false,
               reason: `All top-level tasks are accepted, but final acceptance still has open items: ${openAcceptance.join(", ")}.`,
               open_acceptance_items: openAcceptance,
-            });
+            })));
           }
-          return result({
-            plan_id: planId,
+          return result(shapeNextActionPayload(planId, withDelegationMetadata(undefined, {
             action: "complete_plan",
             reason: "All top-level tasks are already accepted.",
-          });
+            requires_write_lease: false,
+          })));
         }
         const taskState = runtimeStore.getTaskState(planId, nextTask.id);
         const category = categories.get(nextTask.category);
@@ -625,14 +626,7 @@ export function createTools(deps: ToolDeps): ToolDefinition[] {
           activeLease !== undefined,
           plan.uncheckedFinalAcceptanceItems(),
         );
-        return result({
-          plan_id: planId,
-          task_id: nextTask.id,
-          action: action.action,
-          required_role: action.requiredRole,
-          requires_write_lease: action.requiresWriteLease,
-          reason: action.reason,
-        });
+        return result(shapeNextActionPayload(planId, action, nextTask.id));
       },
     },
     {
@@ -848,97 +842,216 @@ function deriveNextAction(
   requiredRole?: string;
   requiresWriteLease: boolean;
   reason: string;
+  requiresSubagent: boolean;
+  dispatchRole?: string;
+  interventionReason: string;
+  dispatchMode: string;
 } {
   const requiresWriteLease = category?.writePolicy === "lease-required";
   if (requiresWriteLease && !activeLeasePresent) {
-    return {
+    return withDelegationMetadata(category, {
       action: "acquire_write_lease",
       requiredRole: planTask.ownerRole,
       requiresWriteLease: true,
       reason: `Task ${planTask.id} belongs to a lease-required category and has no active lease.`,
-    };
+    });
   }
 
   if (taskState?.status === "impl_done" && (planTask.specReviewStatus === "pending" || planTask.specReviewStatus === "fail")) {
-    return {
+    return withDelegationMetadata(category, {
       action: planTask.specReviewStatus === "fail" ? "repair_and_re_review" : "run_spec_review",
       requiredRole: planTask.specReviewStatus === "fail" ? planTask.ownerRole : "harness-evaluator",
       requiresWriteLease,
       reason: planTask.specReviewStatus === "fail"
         ? `Task ${planTask.id} failed spec review and must return to implementation before review repeats.`
         : `Task ${planTask.id} needs spec review before it can continue.`,
-    };
+    });
   }
 
   if (taskState?.status === "impl_done" && planTask.specReviewStatus === "pass" && (planTask.qualityReviewStatus === "pending" || planTask.qualityReviewStatus === "fail")) {
-    return {
+    return withDelegationMetadata(category, {
       action: planTask.qualityReviewStatus === "fail" ? "repair_and_re_review" : "run_quality_review",
       requiredRole: planTask.qualityReviewStatus === "fail" ? planTask.ownerRole : "harness-evaluator",
       requiresWriteLease,
       reason: planTask.qualityReviewStatus === "fail"
         ? `Task ${planTask.id} failed quality review and must return to implementation before review repeats.`
         : `Task ${planTask.id} needs quality review before it can be accepted.`,
-    };
+    });
   }
 
   if (taskState?.status === "spec_failed" || taskState?.status === "quality_failed") {
-    return {
+    return withDelegationMetadata(category, {
       action: "return_to_implementer",
       requiredRole: taskState.assignedRole ?? planTask.ownerRole,
       requiresWriteLease,
       reason: `Task ${planTask.id} failed a review gate and must return to implementation.`,
-    };
+    });
   }
 
   if (planTask.specReviewStatus === "pass" && planTask.qualityReviewStatus === "pass" && planTask.steps.every((step) => step.checked)) {
-    return {
+    return withDelegationMetadata(category, {
       action: "accept_task",
       requiredRole: undefined,
       requiresWriteLease,
       reason: `Task ${planTask.id} has all steps checked and both review gates passed.`,
-    };
+    });
   }
 
   if (planTask.steps.every((step) => step.checked) && planTask.specReviewStatus === "pending") {
-    return {
+    return withDelegationMetadata(category, {
       action: "run_spec_review",
       requiredRole: "harness-evaluator",
       requiresWriteLease,
       reason: `Task ${planTask.id} has completed implementation steps and now needs spec review.`,
-    };
+    });
   }
 
   if (planTask.steps.every((step) => step.checked) && planTask.specReviewStatus === "pass" && planTask.qualityReviewStatus === "pending") {
-    return {
+    return withDelegationMetadata(category, {
       action: "run_quality_review",
       requiredRole: "harness-evaluator",
       requiresWriteLease,
       reason: `Task ${planTask.id} passed spec review and now needs quality review.`,
-    };
+    });
   }
 
   if (planTask.todoChecked && finalAcceptanceOpen.length > 0) {
-    return {
+    return withDelegationMetadata(category, {
       action: "complete_final_acceptance",
       requiredRole: undefined,
       requiresWriteLease: false,
       reason: `All top-level tasks are accepted, but final acceptance still has open items: ${finalAcceptanceOpen.join(", ")}.`,
-    };
+    });
   }
 
   if (taskState?.status === "running_impl") {
-    return {
+    return withDelegationMetadata(category, {
       action: "continue_same_agent",
       requiredRole: taskState.assignedRole ?? planTask.ownerRole,
       requiresWriteLease,
       reason: `Task ${planTask.id} is already in implementation progress.`,
-    };
+    });
   }
 
-  return {
+  if (taskState?.status === "running_spec_review" || taskState?.status === "running_quality_review") {
+    return withDelegationMetadata(category, {
+      action: "continue_same_agent",
+      requiredRole: taskState.assignedRole ?? "harness-evaluator",
+      requiresWriteLease,
+      reason: `Task ${planTask.id} already has an in-progress review assignment.`,
+    });
+  }
+
+  return withDelegationMetadata(category, {
     action: "dispatch_task",
     requiredRole: planTask.ownerRole,
     requiresWriteLease,
     reason: `Task ${planTask.id} is the next incomplete top-level task in the plan.`,
+  });
+}
+
+function withDelegationMetadata(
+  category: CategoryDefinition | undefined,
+  action: {
+    task_id?: string;
+    open_acceptance_items?: string[];
+    action: string;
+    requiredRole?: string;
+    requiresWriteLease?: boolean;
+    requires_write_lease?: boolean;
+    reason: string;
+  },
+): {
+  task_id?: string;
+  open_acceptance_items?: string[];
+  action: string;
+  requiredRole?: string;
+  requiresWriteLease: boolean;
+  requires_write_lease: boolean;
+  reason: string;
+  requiresSubagent: boolean;
+  dispatchRole?: string;
+  interventionReason: string;
+  dispatchMode: string;
+} {
+  const parentOnlyActions = new Set(["acquire_write_lease", "accept_task", "complete_final_acceptance", "complete_plan"]);
+  const delegationPreference = category?.delegationPreference ?? "parent-only";
+  const requiresWriteLease = action.requiresWriteLease ?? action.requires_write_lease ?? false;
+  const dispatchMode = deriveDispatchMode(category, delegationPreference !== "parent-only" && !!action.requiredRole && !parentOnlyActions.has(action.action));
+
+  if (parentOnlyActions.has(action.action) || !action.requiredRole || delegationPreference === "parent-only") {
+    return {
+      ...action,
+      requiresWriteLease,
+      requires_write_lease: requiresWriteLease,
+      requiresSubagent: false,
+      dispatchRole: undefined,
+      interventionReason: parentOnlyActions.has(action.action)
+        ? `Action ${action.action} is a parent-owned control-plane step.`
+        : delegationPreference === "parent-only"
+          ? `Category ${category?.id ?? "unknown"} is configured for parent-local execution.`
+          : "No child role is required for this action.",
+      dispatchMode: "parent-local",
+    };
+  }
+
+  return {
+    ...action,
+    requiresWriteLease,
+    requires_write_lease: requiresWriteLease,
+    requiresSubagent: true,
+    dispatchRole: action.requiredRole,
+    interventionReason: delegationPreference === "subagent-required"
+      ? `Category ${category?.id ?? "unknown"} requires subagent execution for normal task work.`
+      : `Category ${category?.id ?? "unknown"} prefers subagent execution by default.`,
+      dispatchMode,
+    };
+  }
+
+function deriveDispatchMode(
+  category: CategoryDefinition | undefined,
+  requiresSubagent: boolean,
+): string {
+  if (!requiresSubagent) {
+    return "parent-local";
+  }
+  switch (category?.parallelism) {
+    case "parallel":
+      return "parallel-subagents";
+    case "write-scope":
+      return "write-scope-subagent";
+    default:
+      return "single-subagent";
+  }
+}
+
+function shapeNextActionPayload(
+  planId: string,
+  action: {
+    task_id?: string;
+    open_acceptance_items?: string[];
+    action: string;
+    requiredRole?: string;
+    requiresWriteLease: boolean;
+    reason: string;
+    requiresSubagent: boolean;
+    dispatchRole?: string;
+    interventionReason: string;
+    dispatchMode: string;
+  },
+  taskId?: string,
+): Record<string, unknown> {
+  return {
+    plan_id: planId,
+    task_id: taskId ?? action.task_id,
+    action: action.action,
+    required_role: action.requiredRole,
+    requires_write_lease: action.requiresWriteLease,
+    reason: action.reason,
+    requires_subagent: action.requiresSubagent,
+    dispatch_role: action.dispatchRole,
+    intervention_reason: action.interventionReason,
+    dispatch_mode: action.dispatchMode,
+    open_acceptance_items: action.open_acceptance_items,
   };
 }

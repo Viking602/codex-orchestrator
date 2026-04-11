@@ -1,4 +1,5 @@
 export type ReviewStatus = "pending" | "pass" | "fail";
+export type DelegationPreference = "parent-only" | "prefer-subagent" | "subagent-required";
 
 export type TaskStatus =
   | "planned"
@@ -23,6 +24,7 @@ export interface CategoryDefinition {
   requiresSpecReview: boolean;
   requiresQualityReview: boolean;
   parallelism: string;
+  delegationPreference: DelegationPreference;
   reusePolicy: string;
   completionContract: string[];
 }

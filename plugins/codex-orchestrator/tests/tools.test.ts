@@ -18,6 +18,7 @@ requires_plan = true
 requires_spec_review = true
 requires_quality_review = true
 parallelism = "write-scope"
+delegation_preference = "subagent-required"
 reuse_policy = "same_task_same_role_same_scope"
 completion_contract = ["task_accepted"]
 
@@ -30,6 +31,7 @@ requires_plan = true
 requires_spec_review = false
 requires_quality_review = false
 parallelism = "parallel"
+delegation_preference = "subagent-required"
 reuse_policy = "no_reuse"
 completion_contract = ["review_recorded"]
 `.trim());
@@ -125,6 +127,115 @@ function createPhase3PlanFixture(file: string) {
 `);
 }
 
+function createReviewInProgressPlanFixture(file: string) {
+  writeFileSync(file, `# Review Plan
+
+## Execution Status
+
+- Current wave: Wave Review
+- Active task: R1
+- Blockers: None
+- Last review result: Not started
+
+## TODO List
+
+- [x] B1. Completed Build Task
+- [ ] R1. Quality Review Task
+
+### Task B1: Completed Build Task
+
+**Category:** backend-impl
+**Owner Role:** backend-developer
+**Task Status:** accepted
+**Current Step:** none
+**Spec Review Status:** pass
+**Quality Review Status:** pass
+**Assigned Agent:** agent-build
+
+- [x] Step 1: Build implementation
+
+### Task R1: Quality Review Task
+
+**Category:** review
+**Owner Role:** harness-evaluator
+**Task Status:** running_quality_review
+**Current Step:** Step 1
+**Spec Review Status:** pending
+**Quality Review Status:** pending
+**Assigned Agent:** agent-review
+
+- [ ] Step 1: Review implementation
+
+## Final Acceptance
+
+- [ ] final review done
+`);
+}
+
+function createFinalAcceptancePlanFixture(file: string) {
+  writeFileSync(file, `# Final Acceptance Plan
+
+## Execution Status
+
+- Current wave: Wave Finish
+- Active task: none
+- Blockers: None
+- Last review result: quality pass
+
+## TODO List
+
+- [x] D1. Completed Task
+
+### Task D1: Completed Task
+
+**Category:** backend-impl
+**Owner Role:** backend-developer
+**Task Status:** accepted
+**Current Step:** none
+**Spec Review Status:** pass
+**Quality Review Status:** pass
+**Assigned Agent:** agent-impl
+
+- [x] Step 1: Do implementation
+
+## Final Acceptance
+
+- [ ] final acceptance
+`);
+}
+
+function createCompletedPlanFixture(file: string) {
+  writeFileSync(file, `# Completed Plan
+
+## Execution Status
+
+- Current wave: Wave Finish
+- Active task: none
+- Blockers: None
+- Last review result: quality pass
+
+## TODO List
+
+- [x] D1. Completed Task
+
+### Task D1: Completed Task
+
+**Category:** backend-impl
+**Owner Role:** backend-developer
+**Task Status:** accepted
+**Current Step:** none
+**Spec Review Status:** pass
+**Quality Review Status:** pass
+**Assigned Agent:** agent-impl
+
+- [x] Step 1: Do implementation
+
+## Final Acceptance
+
+- [x] final acceptance
+`);
+}
+
 function getTool(name: string, tools: ReturnType<typeof createTools>) {
   const tool = tools.find((entry) => entry.name === name);
   assert.ok(tool, `tool not found: ${name}`);
@@ -171,10 +282,44 @@ test("next_action asks for a write lease before dispatching lease-required work"
     action: string;
     task_id: string;
     requires_write_lease: boolean;
+    requires_subagent: boolean;
+    dispatch_role?: string;
+    intervention_reason: string;
+    dispatch_mode: string;
   };
   assert.equal(payload.task_id, "P2-T2");
   assert.equal(payload.action, "acquire_write_lease");
   assert.equal(payload.requires_write_lease, true);
+  assert.equal(payload.requires_subagent, false);
+  assert.equal(payload.dispatch_role, undefined);
+  assert.match(payload.intervention_reason, /parent-owned control-plane/i);
+  assert.equal(payload.dispatch_mode, "parent-local");
+});
+
+test("resolve_category exposes default subagent bias", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "codex-orchestrator-tools-"));
+  const categoriesFile = join(dir, "categories.toml");
+  createFixtureCategories(categoriesFile);
+
+  const registry = CategoryRegistry.fromToml(categoriesFile);
+  const store = new RuntimeStore(join(dir, "state.db"));
+  const tools = createTools({ categories: registry, runtimeStore: store });
+  const resolveCategory = getTool("orchestrator_resolve_category", tools);
+
+  const response = await resolveCategory.handler({
+    title: "Review current runtime",
+    description: "Review and verify orchestration behavior",
+  });
+  const payload = response.structuredContent as {
+    category_id: string;
+    preferred_role: string;
+    delegation_preference: string;
+    requires_subagent_default: boolean;
+  };
+  assert.equal(payload.category_id, "review");
+  assert.equal(payload.preferred_role, "harness-evaluator");
+  assert.equal(payload.delegation_preference, "subagent-required");
+  assert.equal(payload.requires_subagent_default, true);
 });
 
 test("next_action recommends returning to implementer after review failure", async () => {
@@ -292,4 +437,92 @@ test("completion guard fails closed when final acceptance is not complete", asyn
   assert.equal(payload.can_finish, false);
   assert.ok(payload.open_tasks.includes("P3-T2"));
   assert.ok(payload.open_acceptance_items.includes("all done"));
+});
+
+test("next_action continues the same review agent for in-progress review work", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "codex-orchestrator-tools-"));
+  const categoriesFile = join(dir, "categories.toml");
+  const planFile = join(dir, "review-plan.md");
+  createFixtureCategories(categoriesFile);
+  createReviewInProgressPlanFixture(planFile);
+
+  const registry = CategoryRegistry.fromToml(categoriesFile);
+  const store = new RuntimeStore(join(dir, "state.db"));
+  store.upsertTaskState({
+    planId: "review-plan",
+    taskId: "R1",
+    categoryId: "review",
+    status: "running_quality_review",
+    assignedRole: "harness-evaluator",
+    agentId: "agent-review",
+  });
+
+  const tools = createTools({ categories: registry, runtimeStore: store });
+  const nextAction = getTool("orchestrator_next_action", tools);
+  const response = await nextAction.handler({ planPath: planFile });
+  const payload = response.structuredContent as {
+    action: string;
+    required_role: string;
+    requires_subagent: boolean;
+    dispatch_role: string;
+  };
+
+  assert.equal(payload.action, "continue_same_agent");
+  assert.equal(payload.required_role, "harness-evaluator");
+  assert.equal(payload.requires_subagent, true);
+  assert.equal(payload.dispatch_role, "harness-evaluator");
+});
+
+test("next_action returns parent-local delegation metadata for final acceptance", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "codex-orchestrator-tools-"));
+  const categoriesFile = join(dir, "categories.toml");
+  const planFile = join(dir, "final-acceptance-plan.md");
+  createFixtureCategories(categoriesFile);
+  createFinalAcceptancePlanFixture(planFile);
+
+  const registry = CategoryRegistry.fromToml(categoriesFile);
+  const store = new RuntimeStore(join(dir, "state.db"));
+  const tools = createTools({ categories: registry, runtimeStore: store });
+  const nextAction = getTool("orchestrator_next_action", tools);
+  const response = await nextAction.handler({ planPath: planFile });
+  const payload = response.structuredContent as {
+    action: string;
+    requires_subagent: boolean;
+    dispatch_role?: string;
+    intervention_reason: string;
+    dispatch_mode: string;
+  };
+
+  assert.equal(payload.action, "complete_final_acceptance");
+  assert.equal(payload.requires_subagent, false);
+  assert.equal(payload.dispatch_role, undefined);
+  assert.match(payload.intervention_reason, /parent-owned control-plane/i);
+  assert.equal(payload.dispatch_mode, "parent-local");
+});
+
+test("next_action returns parent-local delegation metadata for complete plan", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "codex-orchestrator-tools-"));
+  const categoriesFile = join(dir, "categories.toml");
+  const planFile = join(dir, "completed-plan.md");
+  createFixtureCategories(categoriesFile);
+  createCompletedPlanFixture(planFile);
+
+  const registry = CategoryRegistry.fromToml(categoriesFile);
+  const store = new RuntimeStore(join(dir, "state.db"));
+  const tools = createTools({ categories: registry, runtimeStore: store });
+  const nextAction = getTool("orchestrator_next_action", tools);
+  const response = await nextAction.handler({ planPath: planFile });
+  const payload = response.structuredContent as {
+    action: string;
+    requires_subagent: boolean;
+    dispatch_role?: string;
+    intervention_reason: string;
+    dispatch_mode: string;
+  };
+
+  assert.equal(payload.action, "complete_plan");
+  assert.equal(payload.requires_subagent, false);
+  assert.equal(payload.dispatch_role, undefined);
+  assert.match(payload.intervention_reason, /parent-owned control-plane/i);
+  assert.equal(payload.dispatch_mode, "parent-local");
 });

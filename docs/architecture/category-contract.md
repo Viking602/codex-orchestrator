@@ -17,6 +17,7 @@ Each category definition must include:
 - `requires_spec_review`
 - `requires_quality_review`
 - `parallelism`
+- `delegation_preference`
 - `reuse_policy`
 - `completion_contract`
 
@@ -30,6 +31,7 @@ Each category definition must include:
 - Spec review: yes
 - Quality review: yes
 - Parallelism: single active task
+- Delegation preference: prefer subagent execution
 - Reuse policy: same task only
 
 ### `research`
@@ -40,6 +42,7 @@ Each category definition must include:
 - Spec review: no
 - Quality review: no
 - Parallelism: multiple allowed when write scopes do not exist
+- Delegation preference: subagent required
 - Reuse policy: no reuse by default
 
 ### `backend-impl`
@@ -50,6 +53,7 @@ Each category definition must include:
 - Spec review: yes
 - Quality review: yes
 - Parallelism: blocked by write-scope conflict
+- Delegation preference: subagent required
 - Reuse policy: same task, same role, same write scope only
 
 ### `review`
@@ -58,11 +62,13 @@ Each category definition must include:
 - Write policy: read-only unless explicitly converted to repair pass
 - Requires plan: yes
 - Parallelism: multiple allowed
+- Delegation preference: subagent required
 - Reuse policy: never reuse implementer as reviewer
 
 ## Enforcement Rules
 
 - If a task has no category contract, dispatch is rejected.
+- If a category requires subagent execution, the parent should treat local execution as drift unless the action is control-plane-only.
 - If a category disallows write but changed files are recorded, the run fails review.
 - If a category requires reviews and no review results exist, the task cannot be accepted.
 - If a category disallows reuse, a prior session cannot be continued for that task.

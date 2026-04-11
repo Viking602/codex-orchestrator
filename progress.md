@@ -40,3 +40,22 @@
 - Expanded installer tests to cover repo marketplace metadata, personal marketplace bootstrap, installed cache staging, and config preservation behavior.
 - Verified the installer tests pass with the new marketplace/bootstrap behavior.
 - Installed the plugin into the local Windows Codex home under `%USERPROFILE%\.codex` and wrote the matching personal marketplace/config entries.
+- Created the default-workflow routing design spec and active implementation plan.
+- Switched routing docs so the default-workflow routing plan became the execution anchor.
+- Updated the installer to bootstrap an idempotent `codex-orchestrator` block into the active global `AGENTS` file.
+- Strengthened the bundled skill and plugin manifest so Codex describes `codex-orchestrator` as the default repository workflow rather than an optional orchestration add-on.
+- Expanded installer tests to cover global `AGENTS` bootstrap and idempotent preservation of existing user guidance.
+- Reinstalled the plugin into the local Windows Codex home and verified a fresh `codex exec` run now names `codex-orchestrator` as the default workflow for repository tasks.
+- Created the delegation-first dispatch design spec and active implementation plan.
+- Added explicit `delegation_preference` semantics to category loading and TOML configuration.
+- Exposed default child-execution bias from `orchestrator_resolve_category` and explicit child-intervention metadata from `orchestrator_next_action`.
+- Fixed delegation regressions so write-lease acquisition remains parent-owned, in-progress review work continues the same assigned reviewer, and terminal next-action responses keep the full metadata shape.
+- Verified the full plugin test suite passes with the new delegation coverage.
+- Created the install-guide design spec and active implementation plan.
+- Added a root-level `install.md` that tells a shell-capable AI agent how to install, verify, and fresh-process validate the plugin without manual config editing.
+- Added a regression test that keeps the guide aligned with the supported installer command and key verification files.
+- Updated the main routing docs and README so `install.md` is now the install entrypoint for AI-driven setup.
+- Created the relative documentation-path policy design spec and active implementation plan.
+- Replaced machine-specific absolute markdown links in routing and product docs with repo-relative links.
+- Replaced hard-coded machine-path install examples with portable forms.
+- Added a markdown regression test that fails when absolute filesystem paths appear in repository docs.

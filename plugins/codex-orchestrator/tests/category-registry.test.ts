@@ -18,6 +18,7 @@ requires_plan = false
 requires_spec_review = true
 requires_quality_review = true
 parallelism = "single"
+delegation_preference = "prefer-subagent"
 reuse_policy = "same_task_only"
 completion_contract = ["artifact_written"]
 `.trim());
@@ -29,6 +30,7 @@ completion_contract = ["artifact_written"]
   });
   assert.equal(resolved.categoryId, "plan");
   assert.equal(resolved.reason, "explicit_category");
+  assert.equal(resolved.category.delegationPreference, "prefer-subagent");
 });
 
 test("CategoryRegistry resolves research by keywords", () => {
@@ -44,6 +46,7 @@ requires_plan = false
 requires_spec_review = false
 requires_quality_review = false
 parallelism = "parallel"
+delegation_preference = "subagent-required"
 reuse_policy = "no_reuse"
 completion_contract = ["findings_recorded"]
 
@@ -56,6 +59,7 @@ requires_plan = true
 requires_spec_review = true
 requires_quality_review = true
 parallelism = "write-scope"
+delegation_preference = "subagent-required"
 reuse_policy = "same_task_same_role_same_scope"
 completion_contract = ["task_accepted"]
 `.trim());
@@ -65,4 +69,28 @@ completion_contract = ["task_accepted"]
     description: "Investigate repository patterns",
   });
   assert.equal(resolved.categoryId, "research");
+  assert.equal(resolved.category.delegationPreference, "subagent-required");
+});
+
+test("CategoryRegistry rejects missing delegation preference", () => {
+  const dir = mkdtempSync(join(tmpdir(), "codex-orchestrator-category-"));
+  const file = join(dir, "categories.toml");
+  writeFileSync(file, `
+[plan]
+intent = "planning"
+preferred_role = "harness-planner"
+allowed_roles = ["harness-planner"]
+write_policy = "docs-only"
+requires_plan = false
+requires_spec_review = true
+requires_quality_review = true
+parallelism = "single"
+reuse_policy = "same_task_only"
+completion_contract = ["artifact_written"]
+`.trim());
+
+  assert.throws(
+    () => CategoryRegistry.fromToml(file),
+    /delegation_preference/,
+  );
 });
