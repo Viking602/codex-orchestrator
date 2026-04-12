@@ -2,35 +2,32 @@
 
 ## Goal
 
-Make `codex-orchestrator` advance top-level task acceptance immediately when terminal review passes close a task, so native todo progress does not stay pinned on the first task and then jump all at once.
+Make `codex-orchestrator` emit executable child-launch instructions so parent agents actually call native subagent tools instead of keeping delegated task work local.
 
 ## Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Define the immediate-acceptance contract and execution anchor | completed | The design spec and active plan now pin the change to the top-level acceptance timing problem |
-| 2. Update runtime acceptance behavior | completed | The Rust control plane now closes terminal-ready tasks through the shared acceptance path |
-| 3. Add regression coverage | completed | Runtime and repo-contract tests now cover immediate acceptance and mirror advancement |
-| 4. Validate and archive the change | completed | Cargo validation passed and the completed plan has been archived |
+| 1. Define the executable dispatch contract | completed | Added a design spec and completed implementation record for literal child-launch routing |
+| 2. Add runtime child-launch fields | completed | `orchestrator_next_action` and `parallel_dispatches` now emit tool action, agent type, and child brief |
+| 3. Sync workflow contracts | completed | Skill, repo guidance, install guidance, and architecture docs now require literal `spawn_agent` / `send_input` execution |
+| 4. Validate and close out | completed | Rust contract tests passed and routing docs now point at the new completed plan |
 
 ## Current Decisions
 
-- Top-level todo movement must happen when a task truly finishes, not in a delayed end-of-wave sweep.
-- The terminal quality-review pass is the right control-plane point to close top-level acceptance when all steps and gates are already satisfied.
-- Explicit `accept_task` and immediate acceptance should share one runtime path so state updates stay identical.
-- `Active task` should advance away from accepted work as part of the same acceptance write.
+- Keep MCP as the control plane and Codex native subagents as the execution plane.
+- Encode child delegation as literal `spawn_agent` / `send_input` instructions instead of only abstract routing metadata.
+- Pass a bounded handoff brief through `subagent_dispatch_message` so the parent does not have to improvise the child prompt.
 
 ## Open Questions
 
-- Bundled fallback agent installation still creates duplicate-role warnings when the host already has the same role names installed globally.
-- The desktop app still needs a restart after external plugin file changes before a fresh thread sees the updated installed runtime.
-- The immediate-acceptance path now covers terminal review recording; future parent-owned gate closures should reuse the same helper instead of forking behavior.
+- Whether a future version should also emit an explicit wait policy for each child lane.
+- Whether reviewer lanes should eventually get a dedicated reviewer brief format distinct from the generic bounded dispatch message.
 
 ## Completed This Session
 
-- Wrote the immediate top-level acceptance design spec
-- Created and completed the implementation plan at `docs/plans/completed/2026-04-12-codex-orchestrator-immediate-top-level-acceptance-implementation.md`
-- Routed `docs/index.md` to the new execution anchor
-- Narrowed the root cause to late top-level acceptance rather than a native todo UI bug
-- Chose a runtime fix that closes top-level acceptance during the terminal review pass instead of waiting for a later sweep
+- Wrote the executable subagent-dispatch design spec
+- Added `subagent_tool_action`, `subagent_agent_type`, and `subagent_dispatch_message` to runtime payloads
+- Added runtime assertions for spawn, resume, and parallel child-launch cases
+- Updated workflow docs to require literal `spawn_agent` / `send_input` calls when the runtime returns those fields
 - Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes

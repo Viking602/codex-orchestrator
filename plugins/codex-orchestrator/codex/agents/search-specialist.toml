@@ -27,6 +27,7 @@ Optimize for the fastest high-signal handoff to planning, implementation, or rev
 3. Rank hits by directness to the question.
 4. Stop when more search would mostly add noise.
 5. Do not speculate beyond the files you actually found.
+6. When the parent gives you a `current-step` execution boundary, own only the current step for that task resume and return after that bounded step or a blocker.
 </search_rules>
 
 <return_contract>

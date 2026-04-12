@@ -338,6 +338,237 @@ fn workflow_requires_immediate_top_level_acceptance_after_terminal_review() {
 }
 
 #[test]
+fn workflow_requires_parallel_dispatch_for_dependency_ready_conflict_free_tasks() {
+    let repo = repo_root();
+    let plugin_root = repo.join("plugins").join("codex-orchestrator");
+    let skill = read_file(&plugin_root.join("skills").join("orchestrator").join("SKILL.md"));
+    let repo_agents = read_file(&repo.join("AGENTS.md"));
+    let install_guide = read_file(&repo.join("install.md"));
+    let category_contract = read_file(&repo.join("docs").join("architecture").join("category-contract.md"));
+    let agent_contracts = read_file(&repo.join("docs").join("architecture").join("agent-contracts.md"));
+    let mcp_contract = read_file(&repo.join("docs").join("architecture").join("mcp-tool-contract.md"));
+
+    assert_matches(
+        &skill,
+        r"parallel_task_ids` and `parallel_dispatches`",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &skill,
+        r"acquire one lease per returned child dispatch scope",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &repo_agents,
+        r"dispatch them together as one parallel child batch",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &repo_agents,
+        r"first task id only as the native todo mirror anchor",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &install_guide,
+        r"parallel top-level dispatch",
+        "install guide",
+    );
+    assert_matches(
+        &install_guide,
+        r"launch the whole returned cohort in one round",
+        "install guide",
+    );
+    assert_matches(
+        &category_contract,
+        r"dependency-ready top-level tasks share a category whose parallelism contract permits batching",
+        "category contract",
+    );
+    assert_matches(
+        &agent_contracts,
+        r"`parallel_task_ids`",
+        "agent contracts",
+    );
+    assert_matches(
+        &agent_contracts,
+        r"`parallel_dispatches`",
+        "agent contracts",
+    );
+    assert_matches(
+        &mcp_contract,
+        r"exposes a parallel dispatch cohort",
+        "mcp tool contract",
+    );
+}
+
+#[test]
+fn workflow_requires_task_owned_subagent_sessions() {
+    let repo = repo_root();
+    let plugin_root = repo.join("plugins").join("codex-orchestrator");
+    let skill = read_file(&plugin_root.join("skills").join("orchestrator").join("SKILL.md"));
+    let repo_agents = read_file(&repo.join("AGENTS.md"));
+    let install_guide = read_file(&repo.join("install.md"));
+    let runtime_schema = read_file(&repo.join("docs").join("architecture").join("runtime-state-schema.md"));
+    let agent_contracts = read_file(&repo.join("docs").join("architecture").join("agent-contracts.md"));
+    let mcp_contract = read_file(&repo.join("docs").join("architecture").join("mcp-tool-contract.md"));
+
+    assert_matches(
+        &skill,
+        r"dedicated child session",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &skill,
+        r"`task_session_mode`, `task_session_key`, and `continue_agent_id`",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &repo_agents,
+        r"Give each top-level task its own dedicated child session",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &install_guide,
+        r"task-owned child sessions",
+        "install guide",
+    );
+    assert_matches(
+        &runtime_schema,
+        r"`implementation_agent_id`",
+        "runtime state schema",
+    );
+    assert_matches(
+        &runtime_schema,
+        r"`review_agent_id`",
+        "runtime state schema",
+    );
+    assert_matches(
+        &agent_contracts,
+        r"`task_session_mode`",
+        "agent contracts",
+    );
+    assert_matches(
+        &agent_contracts,
+        r"One top-level task should map to one dedicated implementer child session",
+        "agent contracts",
+    );
+    assert_matches(
+        &mcp_contract,
+        r"`task_session_key`",
+        "mcp tool contract",
+    );
+    assert_matches(
+        &mcp_contract,
+        r"one dedicated child per top-level task",
+        "mcp tool contract",
+    );
+}
+
+#[test]
+fn workflow_requires_executable_subagent_dispatch_contract() {
+    let repo = repo_root();
+    let plugin_root = repo.join("plugins").join("codex-orchestrator");
+    let skill = read_file(&plugin_root.join("skills").join("orchestrator").join("SKILL.md"));
+    let repo_agents = read_file(&repo.join("AGENTS.md"));
+    let install_guide = read_file(&repo.join("install.md"));
+    let agent_contracts = read_file(&repo.join("docs").join("architecture").join("agent-contracts.md"));
+    let mcp_contract = read_file(&repo.join("docs").join("architecture").join("mcp-tool-contract.md"));
+
+    assert_matches(
+        &skill,
+        r"`subagent_tool_action`, `subagent_agent_type`, and `subagent_dispatch_message`",
+        "orchestrator skill",
+    );
+    assert_matches(&skill, r"`spawn_agent`", "orchestrator skill");
+    assert_matches(&skill, r"`send_input`", "orchestrator skill");
+    assert_matches(
+        &repo_agents,
+        r"`spawn_agent` or `send_input`",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &install_guide,
+        r"`subagent_tool_action`",
+        "install guide",
+    );
+    assert_matches(
+        &agent_contracts,
+        r"`subagent_dispatch_message`",
+        "agent contracts",
+    );
+    assert_matches(
+        &mcp_contract,
+        r"`subagent_tool_action`",
+        "mcp tool contract",
+    );
+}
+
+#[test]
+fn workflow_requires_mid_run_control_plane_checkpoints() {
+    let repo = repo_root();
+    let plugin_root = repo.join("plugins").join("codex-orchestrator");
+    let skill = read_file(&plugin_root.join("skills").join("orchestrator").join("SKILL.md"));
+    let repo_agents = read_file(&repo.join("AGENTS.md"));
+    let install_guide = read_file(&repo.join("install.md"));
+    let plan_sync = read_file(&repo.join("docs").join("architecture").join("plan-sync-rules.md"));
+    let agent_contracts = read_file(&repo.join("docs").join("architecture").join("agent-contracts.md"));
+    let mcp_contract = read_file(&repo.join("docs").join("architecture").join("mcp-tool-contract.md"));
+    let backend_agent = read_file(&plugin_root.join("codex").join("agents").join("backend-developer.toml"));
+    let search_agent = read_file(&plugin_root.join("codex").join("agents").join("search-specialist.toml"));
+    let planner_agent = read_file(&plugin_root.join("codex").join("agents").join("harness-planner.toml"));
+
+    assert_matches(
+        &skill,
+        r"blocking control-plane actions",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &skill,
+        r"only the current step on that resume",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &repo_agents,
+        r"must perform those writes before launching or resuming the child",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &install_guide,
+        r"`blocking_control_plane_actions`",
+        "install guide",
+    );
+    assert_matches(
+        &plan_sync,
+        r"must not be deferred to a terminal replay batch",
+        "plan sync rules",
+    );
+    assert_matches(
+        &agent_contracts,
+        r"`blocking_control_plane_actions`",
+        "agent contracts",
+    );
+    assert_matches(
+        &mcp_contract,
+        r"`child_execution_mode`",
+        "mcp tool contract",
+    );
+    assert_matches(
+        &backend_agent,
+        r"only the current step for that task resume",
+        "backend bundled agent",
+    );
+    assert_matches(
+        &search_agent,
+        r"only the current step for that task resume",
+        "search bundled agent",
+    );
+    assert_matches(
+        &planner_agent,
+        r"only the current step for that task resume",
+        "planner bundled agent",
+    );
+}
+
+#[test]
 fn markdown_docs_do_not_contain_machine_specific_absolute_paths() {
     let repo = repo_root();
     let targets = [

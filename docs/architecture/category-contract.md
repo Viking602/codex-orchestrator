@@ -52,7 +52,7 @@ Each category definition must include:
 - Requires plan: yes
 - Spec review: yes
 - Quality review: yes
-- Parallelism: blocked by write-scope conflict
+- Parallelism: multiple allowed only when task dependencies are satisfied and child-owned write scopes do not conflict
 - Delegation preference: subagent required
 - Reuse policy: same task, same role, same write scope only
 
@@ -72,4 +72,6 @@ Each category definition must include:
 - If a category disallows write but changed files are recorded, the run fails review.
 - If a category requires reviews and no review results exist, the task cannot be accepted.
 - If a category disallows reuse, a prior session cannot be continued for that task.
+- If multiple dependency-ready top-level tasks share a category whose parallelism contract permits batching, the parent should dispatch them together unless child-owned write scopes conflict.
+- Parent-owned coordination artifacts such as the plan file, routing docs, and execution journals do not count as child write conflicts for parallel batch selection.
 

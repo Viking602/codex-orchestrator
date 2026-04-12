@@ -33,6 +33,7 @@ The execution status section must include:
 7. When a blocker appears, update both execution status and task state.
 8. When a write lease is acquired or released, update task status context so the parent can resume from files plus runtime state.
 9. When every top-level TODO item is checked and any `Final Acceptance` items are also checked, move the plan from `docs/plans/active/` to `docs/plans/completed/` in the same pass.
+10. Parent-owned task-start and step-sync writes identified by `orchestrator_next_action` must not be deferred to a terminal replay batch after the coding work is already done.
 
 ## Step Sync Rule
 
@@ -40,6 +41,7 @@ The parent should not treat a whole task as one opaque execution segment when bo
 
 - `Current Step` should name the actionable unchecked step, not remain at `none` during active work.
 - If unchecked steps remain but `Current Step` is missing or stale, that is synchronization drift and should be repaired before pretending progress is current.
+- If `orchestrator_next_action` exposes blocking control-plane actions for task start or step sync, the parent should execute them before resuming the child rather than replaying them later.
 - Plans should prefer smaller visible progress units so top-level TODO movement is not hidden behind one oversized task.
 
 ## Truth Rule

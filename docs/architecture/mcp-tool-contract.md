@@ -37,6 +37,8 @@ The current runtime uses a standalone Rust stdio MCP server that speaks the mini
 - Lease-required categories fail closed without an active write lease.
 - `resolve_category` returns both workflow category and the default delegation bias for that category.
 - `next_action` derives a deterministic parent move from plan plus runtime state and now exposes whether child intervention is required.
+- `next_action` derives a deterministic parent move from plan plus runtime state and exposes a parallel dispatch cohort when multiple top-level tasks are dependency-ready and child-owned scopes do not conflict.
+- `next_action` also exposes task-owned child-session routing so the parent can keep one dedicated child per top-level task instead of absorbing task-local execution context.
 - `begin_task` seeds the first unchecked step when active work starts.
 - `complete_step` auto-advances the current-step pointer to the next unchecked step when available.
 - `next_action` and `watchdog_tick` expose step-sync guidance so parents can repair drift instead of batching late step updates.
@@ -59,6 +61,18 @@ The current runtime uses a standalone Rust stdio MCP server that speaks the mini
 - `dispatch_role`
 - `intervention_reason`
 - `dispatch_mode`
+- `parallel_task_ids`
+- `parallel_dispatches`
+- `task_session_mode`
+- `task_session_key`
+- `continue_agent_id`
+- `subagent_tool_action`
+- `subagent_agent_type`
+- `subagent_dispatch_message`
+- `blocking_control_plane_actions`
+- `child_execution_mode`
+- `child_execution_label`
+- `child_execution_text`
 - `current_step_label`
 - `current_step_text`
 - `next_step_label`
@@ -66,6 +80,13 @@ The current runtime uses a standalone Rust stdio MCP server that speaks the mini
 - `remaining_step_count`
 - `step_sync_status`
 - `step_sync_action`
+
+When multiple top-level tasks are dependency-ready and conflict-free, `next_action` may return `dispatch_parallel_tasks` or `acquire_parallel_write_leases` as the top-level action while still anchoring native todo mirroring on the first task id. Parents should execute the whole returned `parallel_dispatches` cohort instead of reducing the payload back to a single serial task.
+When `task_session_mode` is not `parent-local`, the parent should follow the returned spawn/resume policy literally and keep different top-level tasks on different child sessions. `continue_agent_id` is the runtime-authoritative child to resume for that task lane.
+When `subagent_tool_action` is `spawn_agent`, the parent should call `spawn_agent` with `subagent_agent_type` and pass through `subagent_dispatch_message` as the bounded child brief.
+When `subagent_tool_action` is `send_input`, the parent should resume `continue_agent_id` with `send_input` and pass through `subagent_dispatch_message` instead of executing that task work in the parent.
+When `blocking_control_plane_actions` is non-empty, those writes are blocking pre-dispatch actions rather than advisory hints. The parent should perform them before launching or resuming the child.
+When `child_execution_mode` is `current-step`, the child owns only that current step for the current resume and should return after the bounded step is done or blocked.
 
 ### `orchestrator_begin_task`
 

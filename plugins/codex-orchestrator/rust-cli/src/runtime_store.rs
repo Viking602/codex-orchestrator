@@ -17,6 +17,8 @@ pub struct TaskStateUpsertInput {
     pub active_step_label: Option<String>,
     pub assigned_role: Option<String>,
     pub agent_id: Option<String>,
+    pub implementation_agent_id: Option<String>,
+    pub review_agent_id: Option<String>,
     pub write_lease_id: Option<String>,
     pub spec_review_status: String,
     pub quality_review_status: String,
@@ -83,6 +85,8 @@ impl RuntimeStore {
         active_step_label TEXT,
         assigned_role TEXT,
         agent_id TEXT,
+        implementation_agent_id TEXT,
+        review_agent_id TEXT,
         write_lease_id TEXT,
         spec_review_status TEXT NOT NULL,
         quality_review_status TEXT NOT NULL,
@@ -127,6 +131,25 @@ impl RuntimeStore {
       );
         "#,
         )?;
+        self.ensure_task_state_column("implementation_agent_id", "TEXT")?;
+        self.ensure_task_state_column("review_agent_id", "TEXT")?;
+        Ok(())
+    }
+
+    fn ensure_task_state_column(&self, column_name: &str, column_type: &str) -> Result<()> {
+        let pragma = "PRAGMA table_info(task_state)";
+        let mut stmt = self.conn.prepare(pragma)?;
+        let existing_columns = stmt.query_map([], |row| row.get::<_, String>(1))?;
+        let exists = existing_columns
+            .collect::<std::result::Result<Vec<_>, _>>()?
+            .iter()
+            .any(|name| name == column_name);
+        if !exists {
+            self.conn.execute(
+                &format!("ALTER TABLE task_state ADD COLUMN {column_name} {column_type}"),
+                [],
+            )?;
+        }
         Ok(())
     }
 
@@ -162,15 +185,17 @@ impl RuntimeStore {
         self.conn.execute(
             r#"
       INSERT INTO task_state (
-        plan_id, task_id, category_id, status, active_step_label, assigned_role, agent_id, write_lease_id,
+        plan_id, task_id, category_id, status, active_step_label, assigned_role, agent_id, implementation_agent_id, review_agent_id, write_lease_id,
         spec_review_status, quality_review_status, retry_count, blocker_type, blocker_message, updated_at
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
       ON CONFLICT(plan_id, task_id) DO UPDATE SET
         category_id = excluded.category_id,
         status = excluded.status,
         active_step_label = excluded.active_step_label,
         assigned_role = excluded.assigned_role,
         agent_id = excluded.agent_id,
+        implementation_agent_id = excluded.implementation_agent_id,
+        review_agent_id = excluded.review_agent_id,
         write_lease_id = excluded.write_lease_id,
         spec_review_status = excluded.spec_review_status,
         quality_review_status = excluded.quality_review_status,
@@ -187,6 +212,8 @@ impl RuntimeStore {
                 input.active_step_label,
                 input.assigned_role,
                 input.agent_id,
+                input.implementation_agent_id,
+                input.review_agent_id,
                 input.write_lease_id,
                 input.spec_review_status,
                 input.quality_review_status,
@@ -306,6 +333,8 @@ impl RuntimeStore {
         active_step_label,
         assigned_role,
         agent_id,
+        implementation_agent_id,
+        review_agent_id,
         write_lease_id,
         spec_review_status,
         quality_review_status,
@@ -325,13 +354,15 @@ impl RuntimeStore {
                         active_step_label: row.get(4)?,
                         assigned_role: row.get(5)?,
                         agent_id: row.get(6)?,
-                        write_lease_id: row.get(7)?,
-                        spec_review_status: row.get(8)?,
-                        quality_review_status: row.get(9)?,
-                        retry_count: row.get(10)?,
-                        blocker_type: row.get(11)?,
-                        blocker_message: row.get(12)?,
-                        updated_at: row.get(13)?,
+                        implementation_agent_id: row.get(7)?,
+                        review_agent_id: row.get(8)?,
+                        write_lease_id: row.get(9)?,
+                        spec_review_status: row.get(10)?,
+                        quality_review_status: row.get(11)?,
+                        retry_count: row.get(12)?,
+                        blocker_type: row.get(13)?,
+                        blocker_message: row.get(14)?,
+                        updated_at: row.get(15)?,
                     })
                 },
             )
@@ -351,6 +382,8 @@ impl RuntimeStore {
         active_step_label,
         assigned_role,
         agent_id,
+        implementation_agent_id,
+        review_agent_id,
         write_lease_id,
         spec_review_status,
         quality_review_status,
@@ -371,13 +404,15 @@ impl RuntimeStore {
                 active_step_label: row.get(4)?,
                 assigned_role: row.get(5)?,
                 agent_id: row.get(6)?,
-                write_lease_id: row.get(7)?,
-                spec_review_status: row.get(8)?,
-                quality_review_status: row.get(9)?,
-                retry_count: row.get(10)?,
-                blocker_type: row.get(11)?,
-                blocker_message: row.get(12)?,
-                updated_at: row.get(13)?,
+                implementation_agent_id: row.get(7)?,
+                review_agent_id: row.get(8)?,
+                write_lease_id: row.get(9)?,
+                spec_review_status: row.get(10)?,
+                quality_review_status: row.get(11)?,
+                retry_count: row.get(12)?,
+                blocker_type: row.get(13)?,
+                blocker_message: row.get(14)?,
+                updated_at: row.get(15)?,
             })
         })?;
         rows.collect::<std::result::Result<Vec<_>, _>>().map_err(Into::into)

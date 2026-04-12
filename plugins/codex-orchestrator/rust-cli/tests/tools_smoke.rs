@@ -234,6 +234,8 @@ fn watchdog_uses_negative_threshold_as_match_all_and_prefers_step_sync_repair() 
             active_step_label: None,
             assigned_role: Some("backend-developer".to_string()),
             agent_id: Some("agent-1".to_string()),
+            implementation_agent_id: Some("agent-1".to_string()),
+            review_agent_id: None,
             write_lease_id: None,
             spec_review_status: "pending".to_string(),
             quality_review_status: "pending".to_string(),

@@ -118,6 +118,8 @@ pub struct FinalAcceptanceItem {
 pub struct PlanTask {
     pub id: String,
     pub title: String,
+    pub depends_on: Vec<String>,
+    pub declared_files: Vec<String>,
     pub category: String,
     pub owner_role: String,
     pub task_status: String,
@@ -150,6 +152,8 @@ pub struct TaskStateRecord {
     pub active_step_label: Option<String>,
     pub assigned_role: Option<String>,
     pub agent_id: Option<String>,
+    pub implementation_agent_id: Option<String>,
+    pub review_agent_id: Option<String>,
     pub write_lease_id: Option<String>,
     pub spec_review_status: String,
     pub quality_review_status: String,

@@ -86,3 +86,16 @@
 - The native todo jumpiness was not a frontend-only problem; it came from leaving a gap between terminal review pass and top-level acceptance, so the first unchecked top-level task stayed `in_progress` too long.
 - A mirror that only projects top-level TODO items can only move when the plan checkbox moves, so late acceptance writes inevitably look like sudden bulk completion.
 - The durable fix is to close top-level acceptance in the same control-plane pass as the terminal quality-review write and advance `Active task` immediately.
+- The remaining serialization problem was not category routing alone; `orchestrator_next_action` still anchored on the first unchecked top-level task even when later tasks were dependency-ready and non-conflicting.
+- Existing plan files already contained enough scheduling signal in `Task Dependency Graph` and `Files:` sections to derive safe parallel child batches without introducing a second planning artifact.
+- Parallel top-level dispatch needs child-owned write-scope conflict detection, not repo-wide file overlap, because parent-owned coordination artifacts should not block otherwise independent child work.
+- The host needs explicit payload fields such as `parallel_task_ids` and `parallel_dispatches`; otherwise parent agents tend to collapse a valid batch back into serial dispatch even when the runtime already found a safe cohort.
+- The next context-pressure problem was not lack of delegation preference; it was missing task-owned session policy, so the parent could still keep too much top-level task reasoning local.
+- `task_state.agent_id` alone was too weak because review activity could overwrite the active child and erase the original implementer owner.
+- The durable fix is to preserve `implementation_agent_id` and `review_agent_id` separately and expose explicit spawn/resume session routing from `orchestrator_next_action`.
+- Parallel top-level dispatch still needs per-task child-session routing; otherwise a write-lease batch can accidentally inherit the parent-local routing of the top-level lease action.
+- Fresh-process validation is necessary for session-routing changes because current-chat behavior can hide whether the installed plugin actually exports the new spawn/resume contract.
+- The “all MCP calls happen at the end” failure mode came from two gaps: step-sync hints were only advisory side fields, and child resumes were still broad enough to swallow multiple bounded steps before returning.
+- The durable fix is to emit blocking pre-dispatch control-plane actions from `orchestrator_next_action` and to mark child execution as current-step-scoped so the parent has an explicit checkpoint loop to follow.
+- The “no visible subagent calls” failure mode came from a softer contract gap: runtime payloads still described delegation abstractly, but did not tell the parent which concrete child tool to call.
+- The durable fix is to emit literal `subagent_tool_action`, `subagent_agent_type`, and `subagent_dispatch_message` fields so the parent can route directly into `spawn_agent` or `send_input` instead of improvising.

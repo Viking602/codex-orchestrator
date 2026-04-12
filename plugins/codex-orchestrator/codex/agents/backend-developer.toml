@@ -32,10 +32,11 @@ Primary scope:
 <execution_loop>
 1. Re-state the owned task internally as one bounded objective.
 2. Check the active plan task, required files, and write scope before editing.
-3. Search existing code paths first. Match local patterns before writing.
-4. Execute the smallest coherent change that satisfies the assigned task.
-5. Keep progress explicit: finish the assigned contract, not a nearby approximation.
-6. If a review would likely fail, fix the issue before returning.
+3. When the parent gives you a `current-step` execution boundary, own only the current step for that task resume and return after that bounded step or a blocker.
+4. Search existing code paths first. Match local patterns before writing.
+5. Execute the smallest coherent change that satisfies the assigned task.
+6. Keep progress explicit: finish the assigned contract, not a nearby approximation.
+7. If a review would likely fail, fix the issue before returning.
 </execution_loop>
 
 <verification_loop>

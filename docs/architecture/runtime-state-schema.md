@@ -16,6 +16,8 @@ Runtime state records short-lived orchestration metadata that supports recovery 
 ### Runtime State Is Authoritative For
 
 - current `agent_id`
+- dedicated `implementation_agent_id`
+- current `review_agent_id`
 - current execution stage
 - retry counters
 - blocker metadata
@@ -43,6 +45,8 @@ Runtime state records short-lived orchestration metadata that supports recovery 
 - `active_step_label`
 - `assigned_role`
 - `agent_id`
+- `implementation_agent_id`
+- `review_agent_id`
 - `write_lease_id`
 - `spec_review_status`
 - `quality_review_status`
@@ -101,6 +105,8 @@ Runtime state records short-lived orchestration metadata that supports recovery 
 - Only the parent orchestration layer may advance a task to `accepted`.
 - A task may not enter `accepted` unless all step checkboxes are checked in the plan file.
 - A task may not enter `accepted` unless both reviews are `pass`.
-- A reviewer must never reuse the implementer `agent_id`.
+- `implementation_agent_id` is the durable implementer owner for the top-level task and should survive later review activity.
+- `review_agent_id` tracks the in-flight reviewer lane and must not overwrite `implementation_agent_id`.
+- A reviewer must never reuse the implementer `implementation_agent_id`.
 - A lease-required implementation task may not enter `running_impl` without an active lease.
 - Runtime state must be recoverable without relying on chat history.

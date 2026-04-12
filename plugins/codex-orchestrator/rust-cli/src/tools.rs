@@ -40,6 +40,18 @@ struct CodexTodoItem {
     status: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct BlockingControlPlaneAction {
+    action: String,
+    tool_name: String,
+    reason: String,
+    task_id: String,
+    category_id: Option<String>,
+    role: Option<String>,
+    task_status: Option<String>,
+    step_label: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 struct CodexTodoMirror {
     items: Vec<CodexTodoItem>,
@@ -58,6 +70,7 @@ struct ActionState {
     task_id: Option<String>,
     open_acceptance_items: Vec<String>,
     action: String,
+    category_id: Option<String>,
     required_role: Option<String>,
     requires_write_lease: bool,
     reason: String,
@@ -65,7 +78,47 @@ struct ActionState {
     dispatch_role: Option<String>,
     intervention_reason: String,
     dispatch_mode: String,
+    task_session_mode: String,
+    task_session_key: Option<String>,
+    continue_agent_id: Option<String>,
+    subagent_tool_action: String,
+    subagent_agent_type: Option<String>,
+    subagent_dispatch_message: Option<String>,
+    blocking_control_plane_actions: Vec<BlockingControlPlaneAction>,
+    child_execution_mode: String,
+    child_execution_label: Option<String>,
+    child_execution_text: Option<String>,
     step_progress: StepProgressState,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ParallelDispatchEntry {
+    task_id: String,
+    title: String,
+    action: String,
+    category_id: String,
+    dispatch_role: String,
+    dispatch_mode: String,
+    task_session_mode: String,
+    task_session_key: String,
+    continue_agent_id: Option<String>,
+    subagent_tool_action: String,
+    subagent_agent_type: String,
+    subagent_dispatch_message: String,
+    blocking_control_plane_actions: Vec<BlockingControlPlaneAction>,
+    child_execution_mode: String,
+    child_execution_label: Option<String>,
+    child_execution_text: Option<String>,
+    requires_write_lease: bool,
+    dispatch_scope: Vec<String>,
+    depends_on: Vec<String>,
+    reason: String,
+}
+
+#[derive(Debug, Clone)]
+struct ParallelBatchPlan {
+    top_level_action: String,
+    entries: Vec<ParallelDispatchEntry>,
 }
 
 #[derive(Debug, Clone)]
@@ -73,6 +126,7 @@ struct RawActionState {
     task_id: Option<String>,
     open_acceptance_items: Vec<String>,
     action: String,
+    category_id: Option<String>,
     required_role: Option<String>,
     requires_write_lease: bool,
     reason: String,
@@ -410,6 +464,8 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
                 active_step_label: None,
                 assigned_role: Some(role),
                 agent_id: assigned_agent.clone(),
+                implementation_agent_id: implementation_agent_for_status(&next_status, assigned_agent.clone()),
+                review_agent_id: review_agent_for_status(&next_status, assigned_agent.clone()),
                 write_lease_id: None,
                 spec_review_status: "pending".to_string(),
                 quality_review_status: "pending".to_string(),
@@ -613,6 +669,8 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
                 active_step_label: current.as_ref().and_then(|entry| entry.active_step_label.clone()),
                 assigned_role: Some(role),
                 agent_id: Some(agent_id.clone()),
+                implementation_agent_id: derive_implementation_agent_owner(current.as_ref(), &agent_id),
+                review_agent_id: derive_review_agent_owner(current.as_ref(), &agent_id),
                 write_lease_id: current.as_ref().and_then(|entry| entry.write_lease_id.clone()),
                 spec_review_status: current
                     .as_ref()
@@ -653,7 +711,7 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
                 .runtime_store
                 .get_task_state(&plan_id, &task_id)?
                 .ok_or_else(|| anyhow!("Task state missing: {task_id}"))?;
-            if reviewer_agent_id.as_deref() == current.agent_id.as_deref()
+            if reviewer_agent_id.as_deref() == current.implementation_agent_id.as_deref()
                 && reviewer_agent_id.is_some()
             {
                 return Err(anyhow!("Reviewer must not reuse the implementer agent_id"));
@@ -681,6 +739,10 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
             };
             let mut next = task_upsert_from_current(&current);
             next.status = next_task_status.clone();
+            if reviewer_agent_id.is_some() {
+                next.agent_id = reviewer_agent_id.clone();
+                next.review_agent_id = reviewer_agent_id.clone();
+            }
             next.spec_review_status = spec_review_status.clone();
             next.quality_review_status = quality_review_status.clone();
             ctx.runtime_store.upsert_task_state(next)?;
@@ -806,20 +868,76 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
             sync_stored_plan_path(&ctx.runtime_store, &plan_id, plan.plan_path())?;
             let plan_state = plan.read_plan_state()?;
             sync_stored_plan_path(&ctx.runtime_store, &plan_id, plan.plan_path())?;
-            let next_task = plan_state.tasks.iter().find(|task| !task.todo_checked).cloned();
+            let open_acceptance = plan.unchecked_final_acceptance_items()?;
+            let next_task = first_dependency_ready_open_task(&plan_state);
             if let Some(next_task) = next_task {
                 let task_state = ctx.runtime_store.get_task_state(&plan_id, &next_task.id)?;
                 let active_lease = ctx.runtime_store.get_active_write_lease(&plan_id, &next_task.id)?;
-                let action = derive_next_action(
+                let mut action = derive_next_action(
                     &next_task,
                     task_state.as_ref(),
                     ctx.categories.get(&next_task.category),
                     active_lease.is_some(),
-                    &plan.unchecked_final_acceptance_items()?,
+                    &open_acceptance,
                 );
-                return tool_result(shape_next_action_payload(&plan_id, &action, Some(&next_task.id)));
+                action = decorate_action_with_task_session(&plan_id, &next_task, task_state.as_ref(), action);
+                let parallel_batch = build_parallel_dispatch_batch(
+                    &plan_state,
+                    &ctx.runtime_store,
+                    &ctx.categories,
+                    &plan_id,
+                    &next_task,
+                    &action,
+                    &open_acceptance,
+                )?;
+                let parallel_dispatches = parallel_batch
+                    .as_ref()
+                    .map(|batch| batch.entries.clone())
+                    .unwrap_or_default();
+                if let Some(batch) = parallel_batch.filter(|batch| batch.entries.len() > 1) {
+                    action.action = batch.top_level_action;
+                    action.reason = format!(
+                        "Tasks {} are dependency-ready, conflict-free, and can be advanced together.",
+                        batch.entries
+                            .iter()
+                            .map(|entry| entry.task_id.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                }
+                return tool_result(shape_next_action_payload(
+                    &plan_id,
+                    &action,
+                    Some(&next_task.id),
+                    &parallel_dispatches,
+                ));
             }
-            let open_acceptance = plan.unchecked_final_acceptance_items()?;
+            let open_tasks = plan_state
+                .tasks
+                .iter()
+                .filter(|task| !task.todo_checked)
+                .collect::<Vec<_>>();
+            if !open_tasks.is_empty() {
+                let blocked_task = open_tasks[0];
+                let action = with_delegation_metadata(
+                    None,
+                    RawActionState {
+                        task_id: Some(blocked_task.id.clone()),
+                        open_acceptance_items: Vec::new(),
+                        action: "wait_for_dependencies".to_string(),
+                        category_id: Some(blocked_task.category.clone()),
+                        required_role: None,
+                        requires_write_lease: false,
+                        reason: format!(
+                            "Task {} is still waiting on unresolved dependencies: {}.",
+                            blocked_task.id,
+                            blocked_task.depends_on.join(", ")
+                        ),
+                        step_progress: empty_step_progress(),
+                    },
+                );
+                return tool_result(shape_next_action_payload(&plan_id, &action, Some(&blocked_task.id), &[]));
+            }
             if !open_acceptance.is_empty() {
                 let action = with_delegation_metadata(
                     None,
@@ -827,6 +945,7 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
                         task_id: None,
                         open_acceptance_items: open_acceptance.clone(),
                         action: "complete_final_acceptance".to_string(),
+                        category_id: None,
                         required_role: None,
                         requires_write_lease: false,
                         reason: format!(
@@ -836,7 +955,7 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
                         step_progress: empty_step_progress(),
                     },
                 );
-                return tool_result(shape_next_action_payload(&plan_id, &action, None));
+                return tool_result(shape_next_action_payload(&plan_id, &action, None, &[]));
             }
             let action = with_delegation_metadata(
                 None,
@@ -844,13 +963,14 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
                     task_id: None,
                     open_acceptance_items: Vec::new(),
                     action: "complete_plan".to_string(),
+                    category_id: None,
                     required_role: None,
                     requires_write_lease: false,
                     reason: "All top-level tasks are already accepted.".to_string(),
                     step_progress: empty_step_progress(),
                 },
             );
-            tool_result(shape_next_action_payload(&plan_id, &action, None))
+            tool_result(shape_next_action_payload(&plan_id, &action, None, &[]))
         }
         "orchestrator_question_gate" => {
             let question_category = require_string(args, "questionCategory")?;
@@ -1324,6 +1444,8 @@ fn task_upsert_from_current(current: &TaskStateRecord) -> TaskStateUpsertInput {
         active_step_label: current.active_step_label.clone(),
         assigned_role: current.assigned_role.clone(),
         agent_id: current.agent_id.clone(),
+        implementation_agent_id: current.implementation_agent_id.clone(),
+        review_agent_id: current.review_agent_id.clone(),
         write_lease_id: current.write_lease_id.clone(),
         spec_review_status: current.spec_review_status.clone(),
         quality_review_status: current.quality_review_status.clone(),
@@ -1331,6 +1453,39 @@ fn task_upsert_from_current(current: &TaskStateRecord) -> TaskStateUpsertInput {
         blocker_type: current.blocker_type.clone(),
         blocker_message: current.blocker_message.clone(),
     }
+}
+
+fn implementation_agent_for_status(status: &str, assigned_agent: Option<String>) -> Option<String> {
+    if matches!(status, "running_impl" | "impl_done" | "spec_failed" | "quality_failed") {
+        return assigned_agent;
+    }
+    None
+}
+
+fn review_agent_for_status(status: &str, assigned_agent: Option<String>) -> Option<String> {
+    if matches!(status, "running_spec_review" | "running_quality_review") {
+        return assigned_agent;
+    }
+    None
+}
+
+fn derive_implementation_agent_owner(current: Option<&TaskStateRecord>, agent_id: &str) -> Option<String> {
+    let current_status = current.map(|entry| entry.status.as_str()).unwrap_or("running_impl");
+    if matches!(
+        current_status,
+        "running_impl" | "impl_done" | "spec_failed" | "quality_failed"
+    ) {
+        return Some(agent_id.to_string());
+    }
+    current.and_then(|entry| entry.implementation_agent_id.clone())
+}
+
+fn derive_review_agent_owner(current: Option<&TaskStateRecord>, agent_id: &str) -> Option<String> {
+    let current_status = current.map(|entry| entry.status.as_str()).unwrap_or("planned");
+    if matches!(current_status, "running_spec_review" | "running_quality_review") {
+        return Some(agent_id.to_string());
+    }
+    current.and_then(|entry| entry.review_agent_id.clone())
 }
 
 fn derive_suggested_action(
@@ -1446,9 +1601,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: "acquire_write_lease".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some(plan_task.owner_role.clone()),
                 requires_write_lease: true,
                 reason: format!(
@@ -1466,13 +1622,14 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: if plan_task.spec_review_status == "fail" {
                     "repair_and_re_review".to_string()
                 } else {
                     "run_spec_review".to_string()
                 },
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some(if plan_task.spec_review_status == "fail" {
                     plan_task.owner_role.clone()
                 } else {
@@ -1503,13 +1660,14 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: if plan_task.quality_review_status == "fail" {
                     "repair_and_re_review".to_string()
                 } else {
                     "run_quality_review".to_string()
                 },
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some(if plan_task.quality_review_status == "fail" {
                     plan_task.owner_role.clone()
                 } else {
@@ -1539,9 +1697,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: "return_to_implementer".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some(
                     task_state
                         .and_then(|entry| entry.assigned_role.clone())
@@ -1564,9 +1723,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: "accept_task".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: None,
                 requires_write_lease,
                 reason: format!(
@@ -1582,9 +1742,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: "run_spec_review".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some("harness-evaluator".to_string()),
                 requires_write_lease,
                 reason: format!(
@@ -1603,9 +1764,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: "run_quality_review".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some("harness-evaluator".to_string()),
                 requires_write_lease,
                 reason: format!(
@@ -1621,9 +1783,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: final_acceptance_open.to_vec(),
                 action: "complete_final_acceptance".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: None,
                 requires_write_lease: false,
                 reason: format!(
@@ -1639,9 +1802,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: "continue_same_agent".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some(
                     task_state
                         .and_then(|entry| entry.assigned_role.clone())
@@ -1661,9 +1825,10 @@ fn derive_next_action(
         return with_delegation_metadata(
             category,
             RawActionState {
-                task_id: None,
+                task_id: Some(plan_task.id.clone()),
                 open_acceptance_items: Vec::new(),
                 action: "continue_same_agent".to_string(),
+                category_id: Some(plan_task.category.clone()),
                 required_role: Some(
                     task_state
                         .and_then(|entry| entry.assigned_role.clone())
@@ -1682,9 +1847,10 @@ fn derive_next_action(
     with_delegation_metadata(
         category,
         RawActionState {
-            task_id: None,
+            task_id: Some(plan_task.id.clone()),
             open_acceptance_items: Vec::new(),
             action: "dispatch_task".to_string(),
+            category_id: Some(plan_task.category.clone()),
             required_role: Some(plan_task.owner_role.clone()),
             requires_write_lease,
             reason: format!(
@@ -1694,6 +1860,189 @@ fn derive_next_action(
             step_progress,
         },
     )
+}
+
+fn default_task_status_for_category(category_id: &str) -> String {
+    if category_id == "review" {
+        "running_quality_review".to_string()
+    } else {
+        "running_impl".to_string()
+    }
+}
+
+fn blocking_control_plane_actions(
+    category: Option<&CategoryDefinition>,
+    action: &RawActionState,
+) -> Vec<BlockingControlPlaneAction> {
+    let mut actions = Vec::new();
+    let Some(task_id) = action.task_id.clone() else {
+        return actions;
+    };
+
+    if action.required_role.is_none() {
+        return actions;
+    }
+
+    let category_id = action.category_id.clone();
+    let category_id_str = category_id
+        .as_deref()
+        .or_else(|| category.map(|entry| entry.id.as_str()))
+        .unwrap_or("unknown");
+    let step_progress = &action.step_progress;
+
+    if action.action == "dispatch_task" && step_progress.current_step_label.is_none() {
+        actions.push(BlockingControlPlaneAction {
+            action: "begin_task".to_string(),
+            tool_name: "orchestrator_begin_task".to_string(),
+            reason: format!(
+                "Task {} must be entered into the control plane before child execution starts.",
+                task_id
+            ),
+            task_id: task_id.clone(),
+            category_id: Some(category_id_str.to_string()),
+            role: action.required_role.clone(),
+            task_status: Some(default_task_status_for_category(category_id_str)),
+            step_label: None,
+        });
+        return actions;
+    }
+
+    if matches!(action.action.as_str(), "dispatch_task" | "continue_same_agent" | "return_to_implementer" | "repair_and_re_review")
+    {
+        match step_progress.step_sync_status.as_str() {
+            "needs_begin_step" => {
+                if let Some(step_label) = step_progress.next_step_label.clone() {
+                    actions.push(BlockingControlPlaneAction {
+                        action: "begin_step".to_string(),
+                        tool_name: "orchestrator_begin_step".to_string(),
+                        reason: format!(
+                            "Task {} needs an active current-step pointer before child execution continues.",
+                            task_id
+                        ),
+                        task_id: task_id.clone(),
+                        category_id: Some(category_id_str.to_string()),
+                        role: action.required_role.clone(),
+                        task_status: None,
+                        step_label: Some(step_label),
+                    });
+                }
+            }
+            "stale_current_step" => {
+                if let Some(step_label) = step_progress.next_step_label.clone() {
+                    actions.push(BlockingControlPlaneAction {
+                        action: "repair_current_step".to_string(),
+                        tool_name: "orchestrator_begin_step".to_string(),
+                        reason: format!(
+                            "Task {} has stale step sync and must repair the current step pointer before child execution continues.",
+                            task_id
+                        ),
+                        task_id: task_id.clone(),
+                        category_id: Some(category_id_str.to_string()),
+                        role: action.required_role.clone(),
+                        task_status: None,
+                        step_label: Some(step_label),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+
+    actions
+}
+
+fn child_execution_scope(
+    action_name: &str,
+    step_progress: &StepProgressState,
+) -> (String, Option<String>, Option<String>) {
+    if matches!(
+        action_name,
+        "dispatch_task" | "continue_same_agent" | "return_to_implementer" | "repair_and_re_review"
+    ) {
+        return (
+            "current-step".to_string(),
+            step_progress
+                .current_step_label
+                .clone()
+                .or_else(|| step_progress.next_step_label.clone()),
+            step_progress
+                .current_step_text
+                .clone()
+                .or_else(|| step_progress.next_step_text.clone()),
+        );
+    }
+
+    if matches!(action_name, "run_spec_review" | "run_quality_review") {
+        return ("review-pass".to_string(), None, None);
+    }
+
+    ("parent-local".to_string(), None, None)
+}
+
+fn subagent_tool_action(session_mode: &str) -> String {
+    if session_mode.starts_with("spawn-") {
+        "spawn_agent".to_string()
+    } else if session_mode.starts_with("resume-") {
+        "send_input".to_string()
+    } else {
+        "none".to_string()
+    }
+}
+
+fn subagent_dispatch_message(
+    task_id: &str,
+    task_title: &str,
+    category_id: Option<&str>,
+    dispatch_role: &str,
+    action_name: &str,
+    reason: &str,
+    declared_files: &[String],
+    child_execution_mode: &str,
+    child_execution_label: Option<&str>,
+    child_execution_text: Option<&str>,
+) -> String {
+    let mut lines = vec![
+        format!("Own top-level task {task_id}: {task_title}"),
+        format!("Role: {dispatch_role}"),
+        format!("Category: {}", category_id.unwrap_or("unknown")),
+        format!("Parent action: {action_name}"),
+    ];
+
+    match child_execution_mode {
+        "current-step" => {
+            if let Some(step_label) = child_execution_label {
+                match child_execution_text {
+                    Some(step_text) if !step_text.is_empty() => {
+                        lines.push(format!("Current step: {step_label} - {step_text}"));
+                    }
+                    _ => lines.push(format!("Current step: {step_label}")),
+                }
+            }
+            lines.push(
+                "Execution boundary: own only this current step on this resume and return after that bounded step or a blocker."
+                    .to_string(),
+            );
+        }
+        "review-pass" => lines.push(
+            "Execution boundary: run one review pass for this task and return explicit findings or a pass result."
+                .to_string(),
+        ),
+        _ => lines.push(
+            "Execution boundary: follow the returned task boundary exactly and return once that bounded work is finished or blocked."
+                .to_string(),
+        ),
+    }
+
+    if !declared_files.is_empty() {
+        lines.push(format!("Files: {}", declared_files.join(", ")));
+    }
+
+    lines.push(format!("Why now: {reason}"));
+    lines.push(
+        "Do not mark the top-level task complete; return control to the parent with verification evidence and remaining risks."
+            .to_string(),
+    );
+    lines.join("\n")
 }
 
 fn with_delegation_metadata(
@@ -1719,10 +2068,14 @@ fn with_delegation_metadata(
         || action.required_role.is_none()
         || delegation_preference == DelegationPreference::ParentOnly
     {
+        let blocking_actions = blocking_control_plane_actions(category, &action);
+        let (child_execution_mode, child_execution_label, child_execution_text) =
+            child_execution_scope(&action.action, &action.step_progress);
         return ActionState {
             task_id: action.task_id,
             open_acceptance_items: action.open_acceptance_items,
             action: action.action.clone(),
+            category_id: action.category_id,
             required_role: action.required_role,
             requires_write_lease: action.requires_write_lease,
             reason: action.reason,
@@ -1739,19 +2092,34 @@ fn with_delegation_metadata(
                 "No child role is required for this action.".to_string()
             },
             dispatch_mode: "parent-local".to_string(),
+            task_session_mode: "parent-local".to_string(),
+            task_session_key: None,
+            continue_agent_id: None,
+            subagent_tool_action: "none".to_string(),
+            subagent_agent_type: None,
+            subagent_dispatch_message: None,
+            blocking_control_plane_actions: blocking_actions,
+            child_execution_mode,
+            child_execution_label,
+            child_execution_text,
             step_progress: action.step_progress,
         };
     }
 
+    let blocking_actions = blocking_control_plane_actions(category, &action);
+    let (child_execution_mode, child_execution_label, child_execution_text) =
+        child_execution_scope(&action.action, &action.step_progress);
+    let dispatch_role = action.required_role.clone();
     ActionState {
         task_id: action.task_id,
         open_acceptance_items: action.open_acceptance_items,
         action: action.action,
+        category_id: action.category_id,
         required_role: action.required_role.clone(),
         requires_write_lease: action.requires_write_lease,
         reason: action.reason,
         requires_subagent: true,
-        dispatch_role: action.required_role,
+        dispatch_role,
         intervention_reason: if delegation_preference == DelegationPreference::SubagentRequired {
             format!(
                 "Category {} requires subagent execution for normal task work.",
@@ -1764,6 +2132,16 @@ fn with_delegation_metadata(
             )
         },
         dispatch_mode: derive_dispatch_mode(category, requires_subagent),
+        task_session_mode: "spawn-dedicated-task-subagent".to_string(),
+        task_session_key: None,
+        continue_agent_id: None,
+        subagent_tool_action: "spawn_agent".to_string(),
+        subagent_agent_type: action.required_role.clone(),
+        subagent_dispatch_message: None,
+        blocking_control_plane_actions: blocking_actions,
+        child_execution_mode,
+        child_execution_label,
+        child_execution_text,
         step_progress: action.step_progress,
     }
 }
@@ -1779,11 +2157,155 @@ fn derive_dispatch_mode(category: Option<&CategoryDefinition>, requires_subagent
     }
 }
 
-fn shape_next_action_payload(plan_id: &str, action: &ActionState, task_id: Option<&str>) -> Value {
+fn decorate_action_with_task_session(
+    plan_id: &str,
+    plan_task: &PlanTask,
+    task_state: Option<&TaskStateRecord>,
+    mut action: ActionState,
+) -> ActionState {
+    let Some(lane) = task_session_lane(&action, task_state) else {
+        action.task_session_mode = "parent-local".to_string();
+        action.task_session_key = None;
+        action.continue_agent_id = None;
+        action.subagent_tool_action = "none".to_string();
+        action.subagent_agent_type = None;
+        action.subagent_dispatch_message = None;
+        return action;
+    };
+
+    let owner_agent_id = match lane {
+        TaskSessionLane::Implementer => task_state.and_then(|entry| entry.implementation_agent_id.clone()),
+        TaskSessionLane::Reviewer => task_state.and_then(|entry| entry.review_agent_id.clone()),
+    };
+    let mode = match lane {
+        TaskSessionLane::Implementer => {
+            if owner_agent_id.is_some() {
+                "resume-dedicated-task-subagent"
+            } else {
+                "spawn-dedicated-task-subagent"
+            }
+        }
+        TaskSessionLane::Reviewer => {
+            if action.action == "continue_same_agent" && owner_agent_id.is_some() {
+                "resume-dedicated-reviewer-subagent"
+            } else {
+                "spawn-dedicated-reviewer-subagent"
+            }
+        }
+    };
+
+    action.task_session_mode = mode.to_string();
+    action.task_session_key = Some(task_session_key(plan_id, &plan_task.id, lane));
+    action.continue_agent_id = if mode.starts_with("resume-") {
+        owner_agent_id
+    } else {
+        None
+    };
+    action.subagent_tool_action = subagent_tool_action(mode);
+    action.subagent_agent_type = action.dispatch_role.clone().or(action.required_role.clone());
+    action.subagent_dispatch_message = action
+        .subagent_agent_type
+        .as_deref()
+        .map(|dispatch_role| {
+            subagent_dispatch_message(
+                &plan_task.id,
+                &plan_task.title,
+                action.category_id.as_deref().or(Some(plan_task.category.as_str())),
+                dispatch_role,
+                &action.action,
+                &action.reason,
+                &plan_task.declared_files,
+                &action.child_execution_mode,
+                action.child_execution_label.as_deref(),
+                action.child_execution_text.as_deref(),
+            )
+        });
+    action
+}
+
+fn task_session_lane(
+    action: &ActionState,
+    task_state: Option<&TaskStateRecord>,
+) -> Option<TaskSessionLane> {
+    if !action.requires_subagent {
+        return None;
+    }
+    if matches!(action.action.as_str(), "run_spec_review" | "run_quality_review") {
+        return Some(TaskSessionLane::Reviewer);
+    }
+    if action.action == "continue_same_agent" {
+        if matches!(
+            task_state.map(|entry| entry.status.as_str()),
+            Some("running_spec_review") | Some("running_quality_review")
+        ) {
+            return Some(TaskSessionLane::Reviewer);
+        }
+        return Some(TaskSessionLane::Implementer);
+    }
+    if matches!(
+        action.action.as_str(),
+        "dispatch_task" | "return_to_implementer" | "repair_and_re_review"
+    ) {
+        return Some(TaskSessionLane::Implementer);
+    }
+    None
+}
+
+fn task_session_key(plan_id: &str, task_id: &str, lane: TaskSessionLane) -> String {
+    let lane_name = match lane {
+        TaskSessionLane::Implementer => "implementer",
+        TaskSessionLane::Reviewer => "review",
+    };
+    format!("task::{plan_id}::{task_id}::{lane_name}")
+}
+
+fn dispatch_entry_session(
+    plan_id: &str,
+    plan_task: &PlanTask,
+    task_state: Option<&TaskStateRecord>,
+    child_action: &str,
+) -> (String, String, Option<String>) {
+    let lane = if matches!(child_action, "run_spec_review" | "run_quality_review") {
+        TaskSessionLane::Reviewer
+    } else {
+        TaskSessionLane::Implementer
+    };
+    let owner_agent_id = match lane {
+        TaskSessionLane::Implementer => task_state.and_then(|entry| entry.implementation_agent_id.clone()),
+        TaskSessionLane::Reviewer => task_state.and_then(|entry| entry.review_agent_id.clone()),
+    };
+    let mode = match lane {
+        TaskSessionLane::Implementer => {
+            if owner_agent_id.is_some() {
+                "resume-dedicated-task-subagent"
+            } else {
+                "spawn-dedicated-task-subagent"
+            }
+        }
+        TaskSessionLane::Reviewer => "spawn-dedicated-reviewer-subagent",
+    };
+    (
+        mode.to_string(),
+        task_session_key(plan_id, &plan_task.id, lane),
+        if mode.starts_with("resume-") {
+            owner_agent_id
+        } else {
+            None
+        },
+    )
+}
+
+fn shape_next_action_payload(
+    plan_id: &str,
+    action: &ActionState,
+    task_id: Option<&str>,
+    parallel_dispatches: &[ParallelDispatchEntry],
+) -> Value {
     json!({
         "plan_id": plan_id,
         "task_id": task_id.map(|value| value.to_string()).or_else(|| action.task_id.clone()),
         "action": action.action,
+        "category_id": action.category_id,
         "required_role": action.required_role,
         "requires_write_lease": action.requires_write_lease,
         "reason": action.reason,
@@ -1791,6 +2313,16 @@ fn shape_next_action_payload(plan_id: &str, action: &ActionState, task_id: Optio
         "dispatch_role": action.dispatch_role,
         "intervention_reason": action.intervention_reason,
         "dispatch_mode": action.dispatch_mode,
+        "task_session_mode": action.task_session_mode,
+        "task_session_key": action.task_session_key,
+        "continue_agent_id": action.continue_agent_id,
+        "subagent_tool_action": action.subagent_tool_action,
+        "subagent_agent_type": action.subagent_agent_type,
+        "subagent_dispatch_message": action.subagent_dispatch_message,
+        "blocking_control_plane_actions": action.blocking_control_plane_actions,
+        "child_execution_mode": action.child_execution_mode,
+        "child_execution_label": action.child_execution_label,
+        "child_execution_text": action.child_execution_text,
         "open_acceptance_items": action.open_acceptance_items,
         "current_step_label": action.step_progress.current_step_label,
         "current_step_text": action.step_progress.current_step_text,
@@ -1799,6 +2331,8 @@ fn shape_next_action_payload(plan_id: &str, action: &ActionState, task_id: Optio
         "remaining_step_count": action.step_progress.remaining_step_count,
         "step_sync_status": action.step_progress.step_sync_status,
         "step_sync_action": action.step_progress.step_sync_action,
+        "parallel_task_ids": parallel_dispatches.iter().map(|entry| entry.task_id.clone()).collect::<Vec<_>>(),
+        "parallel_dispatches": parallel_dispatches,
     })
 }
 
@@ -1813,6 +2347,8 @@ fn plan_state_payload(plan_state: &PlanState) -> Value {
         "tasks": plan_state.tasks.iter().map(|task| json!({
             "id": task.id,
             "title": task.title,
+            "dependsOn": task.depends_on,
+            "declaredFiles": task.declared_files,
             "category": task.category,
             "ownerRole": task.owner_role,
             "taskStatus": task.task_status,
@@ -1828,6 +2364,284 @@ fn plan_state_payload(plan_state: &PlanState) -> Value {
             })).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
     })
+}
+
+fn first_dependency_ready_open_task(plan_state: &PlanState) -> Option<PlanTask> {
+    let completed = completed_task_ids(plan_state);
+    plan_state
+        .tasks
+        .iter()
+        .filter(|task| !task.todo_checked && dependencies_satisfied(task, &completed))
+        .cloned()
+        .next()
+}
+
+fn completed_task_ids(plan_state: &PlanState) -> HashSet<String> {
+    plan_state
+        .tasks
+        .iter()
+        .filter(|task| task.todo_checked)
+        .map(|task| task.id.clone())
+        .collect()
+}
+
+fn dependencies_satisfied(task: &PlanTask, completed: &HashSet<String>) -> bool {
+    task.depends_on.iter().all(|task_id| completed.contains(task_id))
+}
+
+fn build_parallel_dispatch_batch(
+    plan_state: &PlanState,
+    runtime_store: &RuntimeStore,
+    categories: &CategoryRegistry,
+    plan_id: &str,
+    primary_task: &PlanTask,
+    primary_action: &ActionState,
+    final_acceptance_open: &[String],
+) -> Result<Option<ParallelBatchPlan>> {
+    let primary_category = categories.get(&primary_task.category);
+    let Some(primary_mode) = parallel_batch_mode(primary_task, primary_action, primary_category) else {
+        return Ok(None);
+    };
+    if primary_mode.dispatch_mode == "write-scope-subagent"
+        && child_dispatch_scope(primary_task).is_empty()
+    {
+        return Ok(None);
+    }
+
+    let completed = completed_task_ids(plan_state);
+    let mut selected = Vec::new();
+    let mut occupied_scopes: Vec<Vec<String>> = Vec::new();
+
+    for task in plan_state.tasks.iter().filter(|task| !task.todo_checked) {
+        if !dependencies_satisfied(task, &completed) {
+            continue;
+        }
+
+        let task_state = runtime_store.get_task_state(plan_id, &task.id)?;
+        let active_lease = runtime_store.get_active_write_lease(plan_id, &task.id)?;
+        let category = categories.get(&task.category);
+        let action = derive_next_action(
+            task,
+            task_state.as_ref(),
+            category,
+            active_lease.is_some(),
+            final_acceptance_open,
+        );
+        let action = decorate_action_with_task_session(plan_id, task, task_state.as_ref(), action);
+        let Some(candidate_mode) = parallel_batch_mode(task, &action, category) else {
+            continue;
+        };
+        if !is_parallel_batch_compatible(&primary_mode, &candidate_mode) {
+            continue;
+        }
+
+        let dispatch_scope = child_dispatch_scope(task);
+        if candidate_mode.dispatch_mode == "write-scope-subagent" && dispatch_scope.is_empty() {
+            continue;
+        }
+        if occupied_scopes
+            .iter()
+            .any(|existing_scope| scopes_conflict(existing_scope, &dispatch_scope))
+        {
+            continue;
+        }
+
+        if !dispatch_scope.is_empty() {
+            occupied_scopes.push(dispatch_scope.clone());
+        }
+        let (task_session_mode, task_session_key, continue_agent_id) =
+            dispatch_entry_session(plan_id, task, task_state.as_ref(), &candidate_mode.child_action);
+        let synthetic_step_progress = build_step_progress(task, task_state.clone());
+        let synthetic_child_action = RawActionState {
+            task_id: Some(task.id.clone()),
+            open_acceptance_items: Vec::new(),
+            action: candidate_mode.child_action.clone(),
+            category_id: Some(task.category.clone()),
+            required_role: Some(candidate_mode.dispatch_role.clone()),
+            requires_write_lease: candidate_mode.requires_write_lease,
+            reason: action.reason.clone(),
+            step_progress: synthetic_step_progress.clone(),
+        };
+        let blocking_control_plane_actions =
+            blocking_control_plane_actions(category, &synthetic_child_action);
+        let (child_execution_mode, child_execution_label, child_execution_text) =
+            child_execution_scope(&synthetic_child_action.action, &synthetic_child_action.step_progress);
+        let subagent_tool_action = subagent_tool_action(&task_session_mode);
+        let subagent_dispatch_message = subagent_dispatch_message(
+            &task.id,
+            &task.title,
+            Some(task.category.as_str()),
+            &candidate_mode.dispatch_role,
+            &candidate_mode.child_action,
+            &action.reason,
+            &task.declared_files,
+            &child_execution_mode,
+            child_execution_label.as_deref(),
+            child_execution_text.as_deref(),
+        );
+        selected.push(ParallelDispatchEntry {
+            task_id: task.id.clone(),
+            title: task.title.clone(),
+            action: candidate_mode.child_action.clone(),
+            category_id: task.category.clone(),
+            dispatch_role: candidate_mode.dispatch_role.clone(),
+            dispatch_mode: candidate_mode.dispatch_mode.clone(),
+            task_session_mode,
+            task_session_key,
+            continue_agent_id,
+            subagent_tool_action,
+            subagent_agent_type: candidate_mode.dispatch_role.clone(),
+            subagent_dispatch_message,
+            blocking_control_plane_actions,
+            child_execution_mode,
+            child_execution_label,
+            child_execution_text,
+            requires_write_lease: candidate_mode.requires_write_lease,
+            dispatch_scope,
+            depends_on: task.depends_on.clone(),
+            reason: action.reason.clone(),
+        });
+    }
+
+    if selected.first().map(|entry| entry.task_id.as_str()) != Some(primary_task.id.as_str()) {
+        return Ok(None);
+    }
+
+    Ok(Some(ParallelBatchPlan {
+        top_level_action: primary_mode.top_level_action,
+        entries: selected,
+    }))
+}
+
+#[derive(Debug, Clone)]
+struct ParallelBatchMode {
+    top_level_action: String,
+    child_action: String,
+    dispatch_role: String,
+    dispatch_mode: String,
+    requires_write_lease: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TaskSessionLane {
+    Implementer,
+    Reviewer,
+}
+
+fn parallel_batch_mode(
+    task: &PlanTask,
+    action: &ActionState,
+    category: Option<&CategoryDefinition>,
+) -> Option<ParallelBatchMode> {
+    if action.requires_subagent
+        && matches!(
+            action.action.as_str(),
+            "dispatch_task" | "run_spec_review" | "run_quality_review" | "repair_and_re_review" | "return_to_implementer"
+        )
+    {
+        return Some(ParallelBatchMode {
+            top_level_action: "dispatch_parallel_tasks".to_string(),
+            child_action: action.action.clone(),
+            dispatch_role: action
+                .dispatch_role
+                .clone()
+                .or(action.required_role.clone())
+                .unwrap_or_else(|| task.owner_role.clone()),
+            dispatch_mode: action.dispatch_mode.clone(),
+            requires_write_lease: action.requires_write_lease,
+        });
+    }
+
+    if action.action == "acquire_write_lease"
+        && category.map(|entry| entry.parallelism.as_str()) == Some("write-scope")
+        && category
+            .map(|entry| entry.delegation_preference != DelegationPreference::ParentOnly)
+            .unwrap_or(false)
+    {
+        return Some(ParallelBatchMode {
+            top_level_action: "acquire_parallel_write_leases".to_string(),
+            child_action: "dispatch_task".to_string(),
+            dispatch_role: task.owner_role.clone(),
+            dispatch_mode: "write-scope-subagent".to_string(),
+            requires_write_lease: true,
+        });
+    }
+
+    None
+}
+
+fn is_parallel_batch_compatible(primary: &ParallelBatchMode, candidate: &ParallelBatchMode) -> bool {
+    candidate.top_level_action == primary.top_level_action
+        && candidate.child_action == primary.child_action
+        && candidate.dispatch_mode == primary.dispatch_mode
+}
+
+fn child_dispatch_scope(task: &PlanTask) -> Vec<String> {
+    let mut scope = task
+        .declared_files
+        .iter()
+        .map(|path| normalize_repo_path(path))
+        .filter(|path| !is_parent_owned_coordination_path(path))
+        .collect::<Vec<_>>();
+    scope.sort();
+    scope.dedup();
+    scope
+}
+
+fn normalize_repo_path(path: &str) -> String {
+    path.replace('\\', "/")
+        .trim()
+        .trim_start_matches("./")
+        .trim_matches('`')
+        .to_lowercase()
+}
+
+fn is_parent_owned_coordination_path(path: &str) -> bool {
+    matches!(
+        path,
+        "task_plan.md" | "progress.md" | "findings.md" | "agents.md" | "docs/index.md"
+    ) || path.starts_with("docs/plans/active/")
+        || path.starts_with("docs/plans/completed/")
+}
+
+fn scopes_conflict(left: &[String], right: &[String]) -> bool {
+    if left.is_empty() || right.is_empty() {
+        return false;
+    }
+    left.iter()
+        .any(|left_path| right.iter().any(|right_path| repo_paths_conflict(left_path, right_path)))
+}
+
+fn repo_paths_conflict(left: &str, right: &str) -> bool {
+    if left == right {
+        return true;
+    }
+
+    let left_prefix = wildcard_prefix(left);
+    let right_prefix = wildcard_prefix(right);
+
+    if let Some(prefix) = left_prefix.as_deref() {
+        if path_within_prefix(right, prefix) {
+            return true;
+        }
+    }
+    if let Some(prefix) = right_prefix.as_deref() {
+        if path_within_prefix(left, prefix) {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn wildcard_prefix(path: &str) -> Option<String> {
+    path.find('*')
+        .map(|index| path[..index].trim_end_matches('/').to_string())
+        .filter(|prefix| !prefix.is_empty())
+}
+
+fn path_within_prefix(path: &str, prefix: &str) -> bool {
+    path == prefix || path.starts_with(&format!("{prefix}/"))
 }
 
 fn require_plan_task(plan_state: &PlanState, task_id: &str) -> Result<PlanTask> {

@@ -3,7 +3,7 @@
 ## Start Here
 
 - [Repository map](../AGENTS.md)
-- [Current design spec](specs/2026-04-12-codex-orchestrator-immediate-top-level-acceptance-design.md)
+- [Current design spec](specs/2026-04-12-codex-orchestrator-executable-subagent-dispatch-design.md)
 - [Phase 2 design spec](specs/2026-04-09-codex-orchestrator-phase-2-design.md)
 - [Phase 3 design spec](specs/2026-04-09-codex-orchestrator-phase-3-design.md)
 - [Installer design spec](specs/2026-04-10-codex-orchestrator-installer-design.md)
@@ -18,14 +18,19 @@
 - [TypeScript compatibility removal design spec](specs/2026-04-12-codex-orchestrator-typescript-compat-removal-design.md)
 - [Full TypeScript removal design spec](specs/2026-04-12-codex-orchestrator-full-typescript-removal-design.md)
 - [Brainstorming integration design spec](specs/2026-04-12-codex-orchestrator-brainstorming-integration-design.md)
+- [Executable subagent dispatch design spec](specs/2026-04-12-codex-orchestrator-executable-subagent-dispatch-design.md)
 - [Install guide design spec](specs/2026-04-11-codex-orchestrator-install-guide-design.md)
 - [Immediate top-level acceptance design spec](specs/2026-04-12-codex-orchestrator-immediate-top-level-acceptance-design.md)
+- [Parallel top-level dispatch design spec](specs/2026-04-12-codex-orchestrator-parallel-top-level-dispatch-design.md)
+- [Task-owned subagent sessions design spec](specs/2026-04-12-codex-orchestrator-task-owned-subagent-sessions-design.md)
 - [Completed plan auto-archive design spec](specs/2026-04-11-codex-orchestrator-plan-archive-design.md)
 - [Relative doc-path policy design spec](specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md)
 - [Bundled agents architecture note](architecture/bundled-agent-bundle.md)
 - [Root install guide](../install.md)
 - [Full TypeScript removal completed implementation plan](plans/completed/2026-04-12-codex-orchestrator-full-typescript-removal-implementation.md)
 - [Brainstorming integration completed implementation plan](plans/completed/2026-04-12-codex-orchestrator-brainstorming-integration-implementation.md)
+- [Mid-run control-plane checkpoints completed implementation plan](plans/completed/2026-04-12-codex-orchestrator-mid-run-control-plane-checkpoints-implementation.md)
+- [Executable subagent dispatch completed implementation plan](plans/completed/2026-04-12-codex-orchestrator-executable-subagent-dispatch-implementation.md)
 
 ## Architecture
 
@@ -59,8 +64,8 @@
 - Active plans should advance `Current Step` incrementally so progress is visible during execution rather than batch-updated at the end.
 - When native Codex `update_plan` is available, the parent should mirror the active plan into that surface instead of creating a separate chat todo.
 - Completed plans auto-move out of `active/` once all top-level TODO items are checked and any `Final Acceptance` items are closed.
-- `docs/plans/active/` is currently empty.
-- The most recent completed implementation plan is [2026-04-12-codex-orchestrator-immediate-top-level-acceptance-implementation.md](plans/completed/2026-04-12-codex-orchestrator-immediate-top-level-acceptance-implementation.md).
+- `docs/plans/active/` currently has no open implementation plan.
+- The most recent completed implementation plan is [2026-04-12-codex-orchestrator-executable-subagent-dispatch-implementation.md](plans/completed/2026-04-12-codex-orchestrator-executable-subagent-dispatch-implementation.md).
 
 ## Specs
 

@@ -129,3 +129,21 @@
 - Added runtime coverage that reproduces the old stuck-first-task symptom and now proves the native todo mirror advances to the next top-level task immediately.
 - Updated workflow and architecture docs so parent agents must not defer accepted-task checkbox movement to an end-of-wave sweep.
 - Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes after the immediate-acceptance change.
+- Created the parallel top-level dispatch design spec and implementation plan so independent top-level tasks no longer have to queue behind the first open item.
+- Extended plan parsing to capture `Task Dependency Graph` edges and per-task `Files:` ownership metadata for machine-readable scheduling.
+- Updated `orchestrator_next_action` so it emits `parallel_task_ids` plus `parallel_dispatches` for dependency-ready, conflict-free task cohorts and requests `acquire_parallel_write_leases` when a write-scope batch needs leases before launch.
+- Added runtime and repo-contract coverage plus workflow and architecture docs so parent agents launch the whole returned batch instead of collapsing it back to serial dispatch.
+- Created the task-owned subagent sessions design spec and active implementation plan so each top-level task can keep its own dedicated child session.
+- Extended runtime task state to preserve `implementation_agent_id` and `review_agent_id` separately instead of letting later review activity erase the original implementer owner.
+- Updated `orchestrator_next_action` and parallel dispatch entries so the parent now gets explicit `task_session_mode`, `task_session_key`, and `continue_agent_id` routing for task-owned child execution.
+- Added runtime and repo-contract coverage plus workflow/architecture docs so each top-level task owns a dedicated implementer child while review remains a separate child lane.
+- Refreshed the installed local plugin/runtime and verified fresh `codex exec` sessions honor the new task-owned child-session routing.
+- Created the mid-run control-plane checkpointing design spec and implementation plan after reproducing that MCP writes could be replayed only at the end of long child runs.
+- Updated `orchestrator_next_action` and parallel dispatch entries to emit `blocking_control_plane_actions` plus `child_execution_mode/current-step` metadata so the parent performs task-start and step-sync writes before child execution continues.
+- Tightened bundled planner, search, and implementation child prompts so task-owned children return after the current step instead of swallowing an entire top-level task.
+- Added regression coverage for untouched-task begin-task checkpoints, step-sync repair checkpoints, and current-step-scoped parallel dispatch entries.
+- Verified fresh repo and non-repo `codex exec` probes still expose the new checkpoint contract and callable orchestration tools after the runtime refresh.
+- Archived the completed implementation plan into `docs/plans/completed/` and updated routing docs so no stale active plan remains.
+- Created the executable subagent-dispatch design spec and completed implementation plan so child delegation becomes a literal runtime contract instead of an interpretive hint.
+- Added `subagent_tool_action`, `subagent_agent_type`, and `subagent_dispatch_message` to top-level and parallel dispatch payloads.
+- Updated workflow and architecture docs so returned child-dispatch fields now require real `spawn_agent` or `send_input` calls instead of parent-local fallback.

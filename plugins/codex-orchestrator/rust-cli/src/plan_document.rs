@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     path::Path,
 };
@@ -259,6 +260,7 @@ fn parse_execution_status(lines: &[String]) -> Result<PlanExecutionStatus> {
 fn parse_tasks(lines: &[String]) -> Result<Vec<PlanTask>> {
     let task_header = Regex::new(r"^### Task ([A-Za-z0-9-]+): (.+)$")?;
     let step_pattern = Regex::new(r"^- \[( |x)\] (Step \d+): (.+)$")?;
+    let dependency_map = parse_task_dependencies(lines)?;
     let mut tasks = Vec::new();
     let mut index = 0;
 
@@ -290,6 +292,8 @@ fn parse_tasks(lines: &[String]) -> Result<Vec<PlanTask>> {
         tasks.push(PlanTask {
             id: id.clone(),
             title,
+            depends_on: dependency_map.get(&id).cloned().unwrap_or_default(),
+            declared_files: parse_declared_files(block)?,
             category: extract_field(block, "**Category:**")?,
             owner_role: extract_field(block, "**Owner Role:**")?,
             task_status: extract_field(block, "**Task Status:**")?,
@@ -310,6 +314,47 @@ fn parse_tasks(lines: &[String]) -> Result<Vec<PlanTask>> {
     }
 
     Ok(tasks)
+}
+
+fn parse_task_dependencies(lines: &[String]) -> Result<HashMap<String, Vec<String>>> {
+    let range = match find_section_range(lines, "## Task Dependency Graph") {
+        Some(range) => range,
+        None => return Ok(HashMap::new()),
+    };
+    let row_pattern = Regex::new(r"^\|\s*([A-Za-z0-9-]+)\.\s+[^|]+\|\s*([^|]+?)\s*\|")?;
+    let task_id_pattern = Regex::new(r"\b([A-Za-z0-9-]+)\b")?;
+    let mut dependencies = HashMap::new();
+
+    for line in &lines[(range.start + 1)..range.end] {
+        let Some(captures) = row_pattern.captures(line) else {
+            continue;
+        };
+        let task_id = captures.get(1).unwrap().as_str().to_string();
+        let dependency_cell = captures.get(2).unwrap().as_str().trim();
+        let depends_on = if dependency_cell.eq_ignore_ascii_case("none") {
+            Vec::new()
+        } else {
+            task_id_pattern
+                .captures_iter(dependency_cell)
+                .filter_map(|entry| entry.get(1).map(|value| value.as_str().to_string()))
+                .collect::<Vec<_>>()
+        };
+        dependencies.insert(task_id, depends_on);
+    }
+
+    Ok(dependencies)
+}
+
+fn parse_declared_files(block: &[String]) -> Result<Vec<String>> {
+    let file_pattern = Regex::new(r"^- (?:Create|Modify|Delete): `([^`]+)`$")?;
+    Ok(block
+        .iter()
+        .filter_map(|line| {
+            file_pattern
+                .captures(line)
+                .and_then(|captures| captures.get(1).map(|value| value.as_str().to_string()))
+        })
+        .collect::<Vec<_>>())
 }
 
 fn normalize_review_status(value: &str) -> String {

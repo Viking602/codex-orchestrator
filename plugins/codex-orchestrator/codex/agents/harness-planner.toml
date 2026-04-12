@@ -34,6 +34,7 @@ Repository anchors:
 - Prefer top-level tasks that produce visible progress in normal execution; if one task would hide progress for too long, split it before implementation starts.
 - Include dependency order, parallel wave hints, and acceptance checks.
 - Parent owns orchestrator MCP calls, plan checkbox updates, and top-level task acceptance.
+- When the parent gives you a `current-step` execution boundary, own only the current step for that task resume and return after that bounded step or a blocker.
 </planning_contract>
 
 <focus>

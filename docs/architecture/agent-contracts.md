@@ -74,11 +74,42 @@ The parent should also treat the following `orchestrator_next_action` fields as 
 - `dispatch_role`
 - `intervention_reason`
 - `dispatch_mode`
+- `parallel_task_ids`
+- `parallel_dispatches`
+- `task_session_mode`
+- `task_session_key`
+- `continue_agent_id`
+- `subagent_tool_action`
+- `subagent_agent_type`
+- `subagent_dispatch_message`
+- `blocking_control_plane_actions`
+- `child_execution_mode`
+- `child_execution_label`
+- `child_execution_text`
 
 Interpretation rule:
 
 - `requires_subagent = true` means the parent should dispatch or continue a child agent instead of performing the task work locally.
 - `requires_subagent = false` means the current step is parent-owned control-plane work.
+- `parallel_task_ids` and `parallel_dispatches` mean the parent should launch the whole returned cohort in one round instead of serializing on the anchor task.
+- If the top-level action is `acquire_parallel_write_leases`, the parent acquires one lease per returned child dispatch scope before launching the batch.
+- `task_session_mode` tells the parent whether to spawn or resume a dedicated child for that top-level task.
+- `task_session_key` is the deterministic ownership handle for that task lane; different top-level tasks must not share the same child session.
+- `continue_agent_id` identifies the child that should be resumed when the task already has a durable owner.
+- `subagent_tool_action = spawn_agent` means the parent should call `spawn_agent` immediately for that task lane.
+- `subagent_tool_action = send_input` means the parent should resume the existing child with `send_input` instead of reabsorbing the task locally.
+- `subagent_agent_type` is the concrete child role to pass into `spawn_agent`.
+- `subagent_dispatch_message` is the bounded handoff brief the parent should pass into `spawn_agent` or `send_input` without rewriting the task as parent-local execution.
+- `blocking_control_plane_actions` are blocking control-plane writes that must be performed before the child launches or resumes.
+- `child_execution_mode = current-step` means the child should execute only the current step for that task resume and then return control to the parent.
+
+## Task-Owned Session Rule
+
+- One top-level task should map to one dedicated implementer child session.
+- The parent should keep control-plane state and avoid holding task-local execution context once a dedicated child exists.
+- The parent should not let the child skip task-start or step-sync checkpoints that the runtime already identified as blocking control-plane writes.
+- Reviewer children are separate guardrail lanes and must not erase the task's dedicated implementer ownership.
+- Repair and continuation should resume the existing task-owned implementer child whenever the runtime provides one.
 
 ## Parent Completion Accountability
 

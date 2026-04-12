@@ -60,6 +60,9 @@ No repository-owned shell installer is the supported path anymore. Codex should 
 
 The direct reconcile flow must close the MCP gap too: a fresh session should not stop at bundled skill discovery while leaving `orchestrator_*` unavailable.
 The managed workflow guidance must also preserve immediate top-level acceptance so native todo progress does not stay pinned on the first task until a late sweep.
+The managed workflow guidance must also preserve parallel top-level dispatch so dependency-ready, non-conflicting tasks do not regress back to single-task serial child execution.
+The managed workflow guidance must also preserve task-owned child sessions so each top-level task can stay on its own dedicated child instead of pushing implementation context back into the parent.
+The managed workflow guidance must also preserve mid-run control-plane checkpointing so task-start and step-sync writes are not deferred to a terminal replay batch after the coding work is already done.
 
 ## Managed Global AGENTS Block
 
@@ -78,6 +81,15 @@ Keep this block present and up to date in the active global `AGENTS` file while 
 - Use the plugin MCP tools to resolve category, read the active plan, export the native Codex todo mirror, record step progress, and enforce review and completion gates.
 - When native `update_plan` is available, mirror the active implementation plan into that surface instead of maintaining a separate chat todo.
 - When a terminal review pass closes a task, accept the top-level task in the same control-plane pass so the next top-level item becomes visible immediately.
+- When multiple top-level tasks are dependency-ready, category-compatible, and free of child-owned write-scope conflicts, dispatch them as one parallel child batch instead of serializing on the first task.
+- If `orchestrator_next_action` returns `parallel_task_ids` and `parallel_dispatches`, launch the whole returned cohort in one round and use the first task id only as the native todo mirror anchor.
+- If the top-level action is `acquire_parallel_write_leases`, acquire one lease per returned child dispatch scope and then launch the full batch.
+- Give each top-level task its own dedicated child session instead of letting the parent absorb task-local execution context.
+- If `orchestrator_next_action` returns `task_session_mode`, `task_session_key`, and `continue_agent_id`, follow that routing literally so task continuation stays on the right child.
+- If `orchestrator_next_action` returns `subagent_tool_action`, `subagent_agent_type`, and `subagent_dispatch_message`, execute that child-dispatch contract literally with `spawn_agent` or `send_input` instead of keeping the task local in the parent.
+- If `orchestrator_next_action` returns `blocking_control_plane_actions`, perform those writes before launching or resuming the child.
+- If `child_execution_mode` is `current-step`, treat the child as owning only the current step for that task resume and require it to return after that bounded step or a blocker.
+- Reviewer work stays on a separate child lane and must not erase the task's dedicated implementer ownership.
 - Generic process skills are fallback helpers after `codex-orchestrator` takes control or when the plugin is unavailable.
 - Follow stronger repository-local `AGENTS.md` guidance when a repository provides it.
 <!-- codex-orchestrator-default-workflow:end -->
@@ -124,6 +136,11 @@ Use the resolved absolute installed-cache path, not a relative path and not a li
 This bootstrap is required because plugin enablement can leave the bundled skill visible while the `orchestrator_*` MCP tools are still absent from the callable tool registry.
 
 For source-checkout development inside this repository, the bundled plugin `.mcp.json` uses `cargo run --manifest-path ./rust-cli/Cargo.toml`. Installed runtime should not point back at deleted source-checkout paths or at `cargo run`.
+
+When validating orchestration behavior instead of bare installation, confirm that a fresh session can see `parallel_task_ids` and `parallel_dispatches` for dependency-ready, non-conflicting top-level work instead of only ever returning one serial task.
+When validating task-local context isolation, also confirm that fresh task work returns `task_session_mode`, `task_session_key`, and `continue_agent_id` so the parent can keep one dedicated child per top-level task.
+When validating executable delegation, also confirm that fresh task work returns `subagent_tool_action`, `subagent_agent_type`, and `subagent_dispatch_message` so the parent has literal `spawn_agent` or `send_input` instructions instead of only a soft delegation hint.
+When validating mid-run checkpointing, also confirm that fresh task work returns `blocking_control_plane_actions` and `child_execution_mode` so the parent performs task-start or step-sync writes before child execution and scopes the child to the current step.
 
 ## Native Binary Staging
 
