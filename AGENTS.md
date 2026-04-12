@@ -18,14 +18,18 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - `codex-orchestrator` absorbs the repository brainstorming stage, so normal repo tasks must not enter through `using-superpowers` or standalone `brainstorming`.
 - Invoke the installed `codex-orchestrator` bundled skill before generic process skills when doing feature work, bug fixes, refactors, debugging, docs changes, architecture work, or other multi-step repo tasks.
 - Treat generic process skills as subordinate helpers after orchestration begins or when the plugin is unavailable.
-- During discovery and design, explore context first, ask clarifying questions one at a time, compare 2-3 approaches with a recommendation, and get design approval before writing the implementation plan.
+- During discovery and design, explore context first, ask clarifying questions one at a time only when something material is missing, compare 2-3 approaches only when the direction is still open, and ask for approval before the implementation plan only when the proposed direction materially changes the request.
+- If the user already supplied a workable direction and no hard blocker exists, do not ask a second confirmation question; summarize assumptions, write the spec and plan, and continue.
 - Start by reading the active plan when one exists, then keep plan status and routing docs synchronized throughout execution.
+- Treat repository inspection, codebase-check, repo-audit, and read-only codebase-understanding requests as `research` work that should dispatch `search-specialist` before the parent keeps that work local.
+- Do not let the parent absorb first-pass repo inspection when `search-specialist` can gather the evidence read-only.
 
 ## Execution Rules
 
 - Keep specification, implementation plan, and execution status in files, not only in chat.
 - Do not treat runtime state as the final truth for completion. Plan checkboxes are authoritative.
 - Parent orchestration owns task acceptance and plan checkbox updates.
+- When a terminal review pass closes a task, parent acceptance must happen in the same control-plane pass instead of a later end-of-wave sweep.
 - Child implementers and reviewers must not mark top-level plan tasks complete.
 - During active work, `Current Step` must point at the actionable unchecked step instead of lingering at `none`.
 - Step synchronization drift is a repository defect; repair missing or stale step pointers before continuing implementation.
@@ -62,6 +66,9 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - [TypeScript compatibility removal design spec](docs/specs/2026-04-12-codex-orchestrator-typescript-compat-removal-design.md)
 - [Full TypeScript removal design spec](docs/specs/2026-04-12-codex-orchestrator-full-typescript-removal-design.md)
 - [Brainstorming integration design spec](docs/specs/2026-04-12-codex-orchestrator-brainstorming-integration-design.md)
+- [Inspection-first delegation design spec](docs/specs/2026-04-12-codex-orchestrator-inspection-first-delegation-design.md)
+- [Direction-first execution design spec](docs/specs/2026-04-12-codex-orchestrator-direction-first-execution-design.md)
+- [Immediate top-level acceptance design spec](docs/specs/2026-04-12-codex-orchestrator-immediate-top-level-acceptance-design.md)
 - [Install guide design spec](docs/specs/2026-04-11-codex-orchestrator-install-guide-design.md)
 - [Completed plan auto-archive design spec](docs/specs/2026-04-11-codex-orchestrator-plan-archive-design.md)
 - [Relative doc-path policy design spec](docs/specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md)
@@ -82,6 +89,9 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - [TypeScript compatibility removal completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-typescript-compat-removal-implementation.md)
 - [Full TypeScript removal completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-full-typescript-removal-implementation.md)
 - [Brainstorming integration completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-brainstorming-integration-implementation.md)
+- [Inspection-first delegation completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-inspection-first-delegation-implementation.md)
+- [Direction-first execution completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-direction-first-execution-implementation.md)
+- [Immediate top-level acceptance completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-immediate-top-level-acceptance-implementation.md)
 - [Install guide completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md)
 - [Completed plan auto-archive implementation plan](docs/plans/completed/2026-04-11-codex-orchestrator-plan-archive-implementation.md)
 - [Relative doc-path policy completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md)

@@ -2,45 +2,35 @@
 
 ## Goal
 
-Remove the remaining root TypeScript contract-test surface so the active `codex-orchestrator` repository becomes fully Rust-only.
+Make `codex-orchestrator` advance top-level task acceptance immediately when terminal review passes close a task, so native todo progress does not stay pinned on the first task and then jump all at once.
 
 ## Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Define the full-removal contract and execution anchor | completed | The design spec and implementation plan were written and routed through the repo docs |
-| 2. Port the remaining repo-contract checks to Rust | completed | Bundle, manifest, brainstorming, markdown-path, and no-TypeScript guards now run under `rust-cli/tests/` |
-| 3. Delete the remaining TypeScript files and stale guidance | completed | Root `tests/*.test.ts` files are gone and active docs/agent scopes now point at the Rust-only surface |
-| 4. Validate and archive the removal | completed | `cargo test` passes and the repo contains no `.ts` or `.tsx` files |
+| 1. Define the immediate-acceptance contract and execution anchor | completed | The design spec and active plan now pin the change to the top-level acceptance timing problem |
+| 2. Update runtime acceptance behavior | completed | The Rust control plane now closes terminal-ready tasks through the shared acceptance path |
+| 3. Add regression coverage | completed | Runtime and repo-contract tests now cover immediate acceptance and mirror advancement |
+| 4. Validate and archive the change | completed | Cargo validation passed and the completed plan has been archived |
 
 ## Current Decisions
 
-- The active repository runtime and contract-test surface should be Rust-only.
-- Repository contract checks belong in `plugins/codex-orchestrator/rust-cli/tests/`, not in a separate root TypeScript layer.
-- Active validation guidance should point at `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml`.
-- Bundled agent scopes and search priorities must track the live Rust source tree instead of deleted TypeScript paths.
-- Historical specs and completed plans may continue to document prior TypeScript phases; the active repository surface should not.
+- Top-level todo movement must happen when a task truly finishes, not in a delayed end-of-wave sweep.
+- The terminal quality-review pass is the right control-plane point to close top-level acceptance when all steps and gates are already satisfied.
+- Explicit `accept_task` and immediate acceptance should share one runtime path so state updates stay identical.
+- `Active task` should advance away from accepted work as part of the same acceptance write.
 
 ## Open Questions
 
 - Bundled fallback agent installation still creates duplicate-role warnings when the host already has the same role names installed globally.
-- The Codex app still needs a restart after external marketplace/install changes before its plugin browser picks up the new local source and enabled state.
-- The active global `AGENTS` file may be `~/.codex/AGENTS.override.md` or `~/.codex/AGENTS.md`, so installer routing bootstrap must target the active one.
-- Plugin-native MCP loading is still not reliable enough to treat bundled skill discovery as proof that `orchestrator_*` tools are callable.
+- The desktop app still needs a restart after external plugin file changes before a fresh thread sees the updated installed runtime.
+- The immediate-acceptance path now covers terminal review recording; future parent-owned gate closures should reuse the same helper instead of forking behavior.
 
 ## Completed This Session
 
-- Wrote the full TypeScript removal design spec and implementation plan
-- Routed `docs/index.md` and `AGENTS.md` to the new execution anchor
-- Added `plugins/codex-orchestrator/rust-cli/tests/repo_contracts.rs` to replace the remaining root TypeScript contract tests
-- Ported bundle, manifest, brainstorming, markdown-path, and no-TypeScript assertions into the Rust test surface
-- Deleted `tests/agent-bundle.test.ts`
-- Deleted `tests/brainstorming-integration.test.ts`
-- Deleted `tests/docs-relative-path-policy.test.ts`
-- Deleted `tests/plugin-manifest.test.ts`
-- Deleted `tests/typescript-compat-removal.test.ts`
-- Updated `README.md` and `install.md` to a Cargo-only validation path
-- Updated bundled agent scopes and search priorities to point at `rust-cli/src/` and `rust-cli/tests/`
-- Removed the stale `typescript-pro` role from the active `backend-impl` allow-list
+- Wrote the immediate top-level acceptance design spec
+- Created and completed the implementation plan at `docs/plans/completed/2026-04-12-codex-orchestrator-immediate-top-level-acceptance-implementation.md`
+- Routed `docs/index.md` to the new execution anchor
+- Narrowed the root cause to late top-level acceptance rather than a native todo UI bug
+- Chose a runtime fix that closes top-level acceptance during the terminal review pass instead of waiting for a later sweep
 - Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes
-- Verified `rg --files -g "*.ts" -g "*.tsx"` returns no files

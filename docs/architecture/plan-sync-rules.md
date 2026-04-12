@@ -28,10 +28,11 @@ The execution status section must include:
 3. When a step starts explicitly, update the task current step.
 4. When a step completes, check the matching checkbox and immediately advance `Current Step` to the next unchecked step when one exists.
 4. When a review completes, update task review fields and top-level execution status.
-5. When a task is accepted, check the top-level task checkbox in the TODO list.
-6. When a blocker appears, update both execution status and task state.
-7. When a write lease is acquired or released, update task status context so the parent can resume from files plus runtime state.
-8. When every top-level TODO item is checked and any `Final Acceptance` items are also checked, move the plan from `docs/plans/active/` to `docs/plans/completed/` in the same pass.
+5. When a terminal review pass closes a task, accept it in the same control-plane pass, check the top-level TODO checkbox immediately, and advance `Active task`.
+6. When a task is accepted outside the review path, check the top-level task checkbox in the TODO list immediately.
+7. When a blocker appears, update both execution status and task state.
+8. When a write lease is acquired or released, update task status context so the parent can resume from files plus runtime state.
+9. When every top-level TODO item is checked and any `Final Acceptance` items are also checked, move the plan from `docs/plans/active/` to `docs/plans/completed/` in the same pass.
 
 ## Step Sync Rule
 

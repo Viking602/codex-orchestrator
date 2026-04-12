@@ -89,6 +89,11 @@ struct CompletionAssessment {
     can_accept: bool,
 }
 
+#[derive(Debug, Clone)]
+struct TaskAcceptanceOutcome {
+    next_active_task_id: Option<String>,
+}
+
 pub fn tool_specs() -> Vec<ToolSpec> {
     vec![
         ToolSpec {
@@ -212,7 +217,7 @@ pub fn tool_specs() -> Vec<ToolSpec> {
         },
         ToolSpec {
             name: "orchestrator_record_review",
-            description: "Record a spec or quality review result and update task metadata.",
+            description: "Record a spec or quality review result, update task metadata, and immediately accept a terminal-ready task.",
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -704,12 +709,29 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
             };
             let review_line = format!("{task_id} {review_type} {review_result}");
             plan.update_execution_status(None, None, Some(&blockers), Some(&review_line))?;
+            let acceptance = if review_result == "pass"
+                && spec_review_status == "pass"
+                && quality_review_status == "pass"
+                && plan.all_steps_completed(&task_id)?
+            {
+                Some(accept_task_in_control_plane(
+                    &mut plan,
+                    &ctx.runtime_store,
+                    &plan_id,
+                    &task_id,
+                )?)
+            } else {
+                None
+            };
             tool_result(json!({
                 "plan_id": plan_id,
                 "task_id": task_id,
                 "review_type": review_type,
                 "result": review_result,
-                "task_status": next_task_status,
+                "task_status": if acceptance.is_some() { "accepted".to_string() } else { next_task_status },
+                "accepted": acceptance.is_some(),
+                "top_level_todo_checked": acceptance.is_some(),
+                "next_active_task_id": acceptance.and_then(|entry| entry.next_active_task_id),
             }))
         }
         "orchestrator_accept_task" => {
@@ -717,32 +739,18 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
             let task_id = require_string(args, "taskId")?;
             let plan_id = plan_id_from_path(plan.plan_path())?;
             sync_stored_plan_path(&ctx.runtime_store, &plan_id, plan.plan_path())?;
-            let current = ctx
-                .runtime_store
-                .get_task_state(&plan_id, &task_id)?
-                .ok_or_else(|| anyhow!("Task state missing: {task_id}"))?;
-            if !plan.all_steps_completed(&task_id)? {
-                return Err(anyhow!(
-                    "Cannot accept task {task_id}: plan steps are not all checked"
-                ));
-            }
-            if current.spec_review_status != "pass" || current.quality_review_status != "pass" {
-                return Err(anyhow!(
-                    "Cannot accept task {task_id}: both review gates must pass first"
-                ));
-            }
-            let mut next = task_upsert_from_current(&current);
-            next.status = "accepted".to_string();
-            next.active_step_label = None;
-            next.blocker_type = None;
-            next.blocker_message = None;
-            ctx.runtime_store.upsert_task_state(next)?;
-            plan.update_task_metadata(&task_id, Some("accepted"), Some("none"), None, None, None)?;
-            plan.mark_top_level_todo(&task_id, true)?;
+            let acceptance = accept_task_in_control_plane(
+                &mut plan,
+                &ctx.runtime_store,
+                &plan_id,
+                &task_id,
+            )?;
             tool_result(json!({
                 "plan_id": plan_id,
                 "task_id": task_id,
                 "accepted": true,
+                "top_level_todo_checked": true,
+                "next_active_task_id": acceptance.next_active_task_id,
             }))
         }
         "orchestrator_check_doc_drift" => {
@@ -852,6 +860,19 @@ pub fn handle_tool_call(ctx: &AppContext, name: &str, args: &Map<String, Value>)
                 ["identity", "credential", "destructive", "conflict"]
                     .into_iter()
                     .collect();
+            if question_category == "direction_confirmation" {
+                return tool_result(json!({
+                    "ask_user": false,
+                    "blocker_type": "none",
+                    "allowed_to_expand": false,
+                    "recommended_action": "plan_and_execute",
+                    "reason": if reason.is_empty() {
+                        "The user already supplied a workable direction, so do not ask for a second start confirmation.".to_string()
+                    } else {
+                        reason
+                    }
+                }));
+            }
             if question_category == "optional_expansion" && !user_explicitly_requested {
                 return tool_result(json!({
                     "ask_user": false,
@@ -1237,6 +1258,61 @@ fn sync_task_current_step(
     runtime_store.upsert_task_state(next)?;
     plan.update_task_metadata(task_id, None, Some(next_step_label.unwrap_or("none")), None, None, None)?;
     Ok(())
+}
+
+fn accept_task_in_control_plane(
+    plan: &mut PlanDocument,
+    runtime_store: &RuntimeStore,
+    plan_id: &str,
+    task_id: &str,
+) -> Result<TaskAcceptanceOutcome> {
+    let current = runtime_store
+        .get_task_state(plan_id, task_id)?
+        .ok_or_else(|| anyhow!("Task state missing: {task_id}"))?;
+    if !plan.all_steps_completed(task_id)? {
+        return Err(anyhow!(
+            "Cannot accept task {task_id}: plan steps are not all checked"
+        ));
+    }
+    if current.spec_review_status != "pass" || current.quality_review_status != "pass" {
+        return Err(anyhow!(
+            "Cannot accept task {task_id}: both review gates must pass first"
+        ));
+    }
+
+    let mut next = task_upsert_from_current(&current);
+    next.status = "accepted".to_string();
+    next.active_step_label = None;
+    next.blocker_type = None;
+    next.blocker_message = None;
+    runtime_store.upsert_task_state(next)?;
+    plan.update_task_metadata(task_id, Some("accepted"), Some("none"), None, None, None)?;
+    plan.mark_top_level_todo(task_id, true)?;
+
+    let next_active_task_id = plan
+        .read_plan_state()?
+        .tasks
+        .iter()
+        .find(|task| !task.todo_checked)
+        .map(|task| task.id.clone());
+    plan.update_execution_status(
+        None,
+        Some(next_active_task_id.as_deref().unwrap_or("none")),
+        None,
+        None,
+    )?;
+    if let Some(existing) = runtime_store.get_plan_state(plan_id)? {
+        runtime_store.upsert_plan_state(PlanStateUpsertInput {
+            plan_id: plan_id.to_string(),
+            plan_path: plan.plan_path().to_string(),
+            spec_path: existing.spec_path,
+            current_wave: existing.current_wave,
+            active_task_id: next_active_task_id.clone(),
+            last_review_result: existing.last_review_result,
+        })?;
+    }
+
+    Ok(TaskAcceptanceOutcome { next_active_task_id })
 }
 
 fn task_upsert_from_current(current: &TaskStateRecord) -> TaskStateUpsertInput {

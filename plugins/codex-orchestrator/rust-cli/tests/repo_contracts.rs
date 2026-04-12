@@ -195,15 +195,20 @@ fn orchestrator_workflow_absorbs_brainstorming_contract() {
     );
     assert_matches(
         &skill,
-        r"Propose 2-3 approaches with trade-offs and a recommendation",
+        r"direction is materially open or the user explicitly asked for options",
         "orchestrator skill",
     );
     assert_matches(
         &skill,
-        r"get user approval before writing the implementation plan",
+        r"user already supplied a workable direction",
         "orchestrator skill",
     );
     assert_matches(&skill, r"spec self-review", "orchestrator skill");
+    assert_matches(
+        &skill,
+        r"without asking a second confirmation question",
+        "orchestrator skill",
+    );
 
     assert_matches(
         &repo_agents,
@@ -212,7 +217,7 @@ fn orchestrator_workflow_absorbs_brainstorming_contract() {
     );
     assert_matches(
         &repo_agents,
-        r"compare 2-3 approaches with a recommendation",
+        r"compare 2-3 approaches only when the direction is still open",
         "repo AGENTS",
     );
     assert_matches(
@@ -222,34 +227,113 @@ fn orchestrator_workflow_absorbs_brainstorming_contract() {
     );
     assert_matches(
         &install_guide,
-        r"get design approval before writing the implementation plan",
+        r"do not ask a second confirmation question",
         "install guide",
     );
 
     assert_matches(
         manifest["description"].as_str().unwrap(),
-        r"discovery, design approval, file-backed planning",
+        r"discovery, direction-aware planning, file-backed execution tracking",
         "plugin description",
     );
     assert_matches(
         manifest["interface"]["shortDescription"].as_str().unwrap(),
-        r"discovery, design approval, planning",
+        r"discovery, direction-aware planning, execution",
         "plugin short description",
     );
     assert_matches(
         manifest["interface"]["longDescription"].as_str().unwrap(),
-        r"requirements clarification, design specs, implementation plans",
+        r"direction-aware specs and implementation plans",
         "plugin long description",
     );
     assert_matches(
         &default_prompt,
-        r"clarify requirements one question at a time",
+        r"Clarify only hard blockers",
         "plugin default prompts",
     );
     assert_matches(
         &default_prompt,
-        r"compare approaches, and get design approval",
+        r"do not ask again to start",
         "plugin default prompts",
+    );
+}
+
+#[test]
+fn inspection_first_workflow_routes_repo_checks_to_search_specialist() {
+    let repo = repo_root();
+    let plugin_root = repo.join("plugins").join("codex-orchestrator");
+    let skill = read_file(&plugin_root.join("skills").join("orchestrator").join("SKILL.md"));
+    let repo_agents = read_file(&repo.join("AGENTS.md"));
+    let install_guide = read_file(&repo.join("install.md"));
+
+    assert_matches(
+        &skill,
+        r"codebase checks, repo audits, and read-only repo-understanding requests as `research` work",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &skill,
+        r"dispatching `search-specialist`",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &repo_agents,
+        r"codebase-check, repo-audit, and read-only codebase-understanding requests",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &repo_agents,
+        r"Do not let the parent absorb first-pass repo inspection",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &install_guide,
+        r"codebase-check, repo-audit, and read-only repo-understanding requests",
+        "install guide",
+    );
+    assert_matches(&install_guide, r"dispatch `search-specialist`", "install guide");
+}
+
+#[test]
+fn workflow_requires_immediate_top_level_acceptance_after_terminal_review() {
+    let repo = repo_root();
+    let plugin_root = repo.join("plugins").join("codex-orchestrator");
+    let skill = read_file(&plugin_root.join("skills").join("orchestrator").join("SKILL.md"));
+    let repo_agents = read_file(&repo.join("AGENTS.md"));
+    let install_guide = read_file(&repo.join("install.md"));
+    let agent_contracts = read_file(&repo.join("docs").join("architecture").join("agent-contracts.md"));
+    let mcp_contract = read_file(&repo.join("docs").join("architecture").join("mcp-tool-contract.md"));
+    let plan_sync = read_file(&repo.join("docs").join("architecture").join("plan-sync-rules.md"));
+
+    assert_matches(
+        &skill,
+        r"terminal review pass closes the task, accept the top-level task in the same control-plane pass",
+        "orchestrator skill",
+    );
+    assert_matches(
+        &repo_agents,
+        r"terminal review pass closes a task, parent acceptance must happen in the same control-plane pass",
+        "repo AGENTS",
+    );
+    assert_matches(
+        &install_guide,
+        r"terminal review pass closes a task, accept the top-level task in the same control-plane pass",
+        "install guide",
+    );
+    assert_matches(
+        &agent_contracts,
+        r"terminal review pass closes a task, the parent must accept that top-level task in the same control-plane pass",
+        "agent contracts",
+    );
+    assert_matches(
+        &mcp_contract,
+        r"`record_review` immediately accepts a terminal-ready task",
+        "mcp tool contract",
+    );
+    assert_matches(
+        &plan_sync,
+        r"terminal review pass closes a task, accept it in the same control-plane pass",
+        "plan sync rules",
     );
 }
 

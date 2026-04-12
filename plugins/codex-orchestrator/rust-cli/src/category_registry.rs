@@ -96,7 +96,7 @@ impl CategoryRegistry {
         let haystack = format!("{title}\n{description}").to_lowercase();
 
         let planners = ["plan", "spec", "design", "architecture", "contract", "decompose"];
-        if planners.iter().any(|term| haystack.contains(term)) {
+        if contains_any_keyword(&haystack, &planners) {
             let category = self.require("plan")?;
             return Ok(CategoryResolution {
                 category_id: category.id.clone(),
@@ -106,7 +106,7 @@ impl CategoryRegistry {
         }
 
         let reviewers = ["review", "verify", "evaluation", "evaluator", "qa", "quality"];
-        if reviewers.iter().any(|term| haystack.contains(term)) {
+        if contains_any_keyword(&haystack, &reviewers) {
             let category = self.require("review")?;
             return Ok(CategoryResolution {
                 category_id: category.id.clone(),
@@ -115,7 +115,7 @@ impl CategoryRegistry {
             });
         }
 
-        let researchers = [
+        let generic_researchers = [
             "research",
             "analyze",
             "analysis",
@@ -125,7 +125,9 @@ impl CategoryRegistry {
             "investigate",
             "map",
         ];
-        if researchers.iter().any(|term| haystack.contains(term)) {
+        if contains_any_keyword(&haystack, &generic_researchers)
+            || matches_repository_inspection_request(&haystack)
+        {
             let category = self.require("research")?;
             return Ok(CategoryResolution {
                 category_id: category.id.clone(),
@@ -164,4 +166,63 @@ fn normalize_delegation_preference(
             "Category {category_id} is missing required delegation_preference"
         )),
     }
+}
+
+fn contains_any_keyword(haystack: &str, keywords: &[&str]) -> bool {
+    keywords.iter().any(|keyword| contains_keyword(haystack, keyword))
+}
+
+fn contains_keyword(haystack: &str, keyword: &str) -> bool {
+    if keyword.is_empty() {
+        return false;
+    }
+
+    if !keyword.is_ascii() || keyword.contains(' ') {
+        return haystack.contains(keyword);
+    }
+
+    haystack.match_indices(keyword).any(|(start, _)| {
+        let end = start + keyword.len();
+        let before = haystack[..start].chars().next_back();
+        let after = haystack[end..].chars().next();
+        !is_ascii_word_char(before) && !is_ascii_word_char(after)
+    })
+}
+
+fn is_ascii_word_char(value: Option<char>) -> bool {
+    value.is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+}
+
+fn matches_repository_inspection_request(haystack: &str) -> bool {
+    let repository_nouns = [
+        "codebase",
+        "repository",
+        "repo",
+        "代码库",
+        "仓库",
+        "项目代码",
+        "源码",
+        "仓库代码",
+    ];
+    let inspection_terms = [
+        "check",
+        "audit",
+        "inspect",
+        "scan",
+        "look through",
+        "read through",
+        "understand",
+        "triage",
+        "检查",
+        "排查",
+        "梳理",
+        "审查",
+        "阅读",
+        "查看",
+        "看一下",
+        "看下",
+    ];
+
+    contains_any_keyword(haystack, &repository_nouns)
+        && contains_any_keyword(haystack, &inspection_terms)
 }

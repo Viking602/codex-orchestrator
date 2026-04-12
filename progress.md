@@ -113,3 +113,19 @@
 - Added `plugins/codex-orchestrator/rust-cli/tests/repo_contracts.rs` to port the remaining bundle, manifest, brainstorming, markdown-path, and no-TypeScript contract checks into Rust.
 - Deleted the last root TypeScript contract tests, updated active docs and bundled-agent scopes to the Rust-only surface, and removed `typescript-pro` from the live `backend-impl` allow-list.
 - Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes and `rg --files -g "*.ts" -g "*.tsx"` returns no files.
+- Created the inspection-first delegation design spec and implementation plan so repository codebase-check requests stop falling through to parent-local implementation work.
+- Expanded category resolution to recognize repository-inspection wording in both English and Chinese and route it into delegated `research`.
+- Updated the orchestrator skill, repository guidance, and install-managed global guidance so read-only codebase inspection dispatches `search-specialist` before the parent owns first-pass evidence gathering.
+- Added Rust regression coverage for `check this codebase`, `检查这个项目的代码库`, and `research` next-action dispatch metadata.
+- Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes after the inspection-first delegation hardening.
+- Created the direction-first execution design spec and implementation plan so clear user direction no longer triggers redundant `shall I proceed` questions.
+- Narrowed the orchestrator discovery contract so approach comparison and approval happen only when the direction is actually open or materially changes the request.
+- Added `direction_confirmation` to `orchestrator_question_gate` as a non-question path that returns `plan_and_execute`.
+- Updated the orchestrator skill, repository guidance, install guide, and plugin manifest prompts so direction-clear requests go straight into spec, active plan, and execution.
+- Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes after the direction-first execution hardening.
+- Created the immediate top-level acceptance design spec and implementation plan so native todo progress no longer waits for a late explicit acceptance sweep after terminal review pass.
+- Refactored task acceptance into a shared Rust helper used by both explicit `orchestrator_accept_task` and terminal `orchestrator_record_review`.
+- Updated `orchestrator_record_review` so a terminal quality-review pass immediately accepts the task, checks the top-level TODO item, and advances `Active task`.
+- Added runtime coverage that reproduces the old stuck-first-task symptom and now proves the native todo mirror advances to the next top-level task immediately.
+- Updated workflow and architecture docs so parent agents must not defer accepted-task checkbox movement to an end-of-wave sweep.
+- Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes after the immediate-acceptance change.

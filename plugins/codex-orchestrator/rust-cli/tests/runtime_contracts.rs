@@ -12,6 +12,19 @@ fn write_categories(path: &std::path::Path) {
     fs::write(
         path,
         r#"
+[research]
+intent = "research"
+preferred_role = "search-specialist"
+allowed_roles = ["search-specialist"]
+write_policy = "read-only"
+requires_plan = false
+requires_spec_review = false
+requires_quality_review = false
+parallelism = "parallel"
+delegation_preference = "subagent-required"
+reuse_policy = "no_reuse"
+completion_contract = ["findings_recorded"]
+
 [backend-impl]
 intent = "implementation"
 preferred_role = "backend-developer"
@@ -202,6 +215,83 @@ fn phase3_plan() -> &'static str {
 "#
 }
 
+fn research_plan() -> &'static str {
+    r#"# Research Plan
+
+## Execution Status
+
+- Current wave: Wave Inspect
+- Active task: R1
+- Blockers: None
+- Last review result: Not started
+
+## TODO List
+
+- [ ] R1. Inspect Repository Surface
+
+### Task R1: Inspect Repository Surface
+
+**Category:** research
+**Owner Role:** search-specialist
+**Task Status:** planned
+**Current Step:** none
+**Spec Review Status:** pending
+**Quality Review Status:** pending
+**Assigned Agent:** unassigned
+
+- [ ] Step 1: Gather read-only evidence from the repository
+
+## Final Acceptance
+
+- [ ] all done
+"#
+}
+
+fn immediate_acceptance_plan() -> &'static str {
+    r#"# Immediate Acceptance Plan
+
+## Execution Status
+
+- Current wave: Wave Accept
+- Active task: A1
+- Blockers: None
+- Last review result: Not started
+
+## TODO List
+
+- [ ] A1. Finish Current Task
+- [ ] B1. Start Follow-Up Task
+
+### Task A1: Finish Current Task
+
+**Category:** backend-impl
+**Owner Role:** backend-developer
+**Task Status:** running_quality_review
+**Current Step:** none
+**Spec Review Status:** pass
+**Quality Review Status:** pending
+**Assigned Agent:** agent-impl
+
+- [x] Step 1: Finish implementation
+
+### Task B1: Start Follow-Up Task
+
+**Category:** backend-impl
+**Owner Role:** backend-developer
+**Task Status:** ready
+**Current Step:** none
+**Spec Review Status:** pending
+**Quality Review Status:** pending
+**Assigned Agent:** unassigned
+
+- [ ] Step 1: Start the next implementation task
+
+## Final Acceptance
+
+- [ ] all done
+"#
+}
+
 #[test]
 fn resolve_category_exposes_default_subagent_bias() {
     let temp = tempdir().unwrap();
@@ -223,6 +313,65 @@ fn resolve_category_exposes_default_subagent_bias() {
     assert_eq!(payload["preferred_role"], "harness-evaluator");
     assert_eq!(payload["delegation_preference"], "subagent-required");
     assert_eq!(payload["requires_subagent_default"], true);
+}
+
+#[test]
+fn resolve_category_routes_codebase_checks_to_research() {
+    let temp = tempdir().unwrap();
+    let ctx = create_context(temp.path());
+
+    let english = structured(
+        handle_tool_call(
+            &ctx,
+            "orchestrator_resolve_category",
+            &tool_args(json!({
+                "title": "Check this codebase",
+                "description": "Audit the repository and summarize the key modules before we change anything"
+            })),
+        )
+        .unwrap(),
+    );
+    let chinese = structured(
+        handle_tool_call(
+            &ctx,
+            "orchestrator_resolve_category",
+            &tool_args(json!({
+                "title": "检查这个项目的代码库",
+                "description": "先做只读梳理和排查，不要直接改代码"
+            })),
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(english["category_id"], "research");
+    assert_eq!(english["preferred_role"], "search-specialist");
+    assert_eq!(english["requires_subagent_default"], true);
+    assert_eq!(chinese["category_id"], "research");
+    assert_eq!(chinese["preferred_role"], "search-specialist");
+    assert_eq!(chinese["requires_subagent_default"], true);
+}
+
+#[test]
+fn next_action_for_research_task_requires_parallel_search_subagent() {
+    let temp = tempdir().unwrap();
+    let plan = temp.path().join("research-plan.md");
+    write_file(&plan, research_plan());
+    let ctx = create_context(temp.path());
+
+    let payload = structured(
+        handle_tool_call(
+            &ctx,
+            "orchestrator_next_action",
+            &tool_args(json!({ "planPath": plan })),
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(payload["task_id"], "R1");
+    assert_eq!(payload["action"], "dispatch_task");
+    assert_eq!(payload["requires_subagent"], true);
+    assert_eq!(payload["dispatch_role"], "search-specialist");
+    assert_eq!(payload["dispatch_mode"], "parallel-subagents");
 }
 
 #[test]
@@ -321,6 +470,106 @@ fn question_gate_rejects_optional_expansion_by_default() {
 
     assert_eq!(payload["ask_user"], false);
     assert_eq!(payload["allowed_to_expand"], false);
+}
+
+#[test]
+fn question_gate_skips_redundant_direction_confirmation() {
+    let temp = tempdir().unwrap();
+    let ctx = create_context(temp.path());
+
+    let payload = structured(
+        handle_tool_call(
+            &ctx,
+            "orchestrator_question_gate",
+            &tool_args(json!({
+                "questionCategory": "direction_confirmation",
+                "reason": "The user already requested a full MCP server and there is no hard blocker."
+            })),
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(payload["ask_user"], false);
+    assert_eq!(payload["allowed_to_expand"], false);
+    assert_eq!(payload["recommended_action"], "plan_and_execute");
+}
+
+#[test]
+fn terminal_quality_review_pass_immediately_accepts_and_advances_todo_mirror() {
+    let temp = tempdir().unwrap();
+    let plan = temp.path().join("immediate-acceptance-plan.md");
+    write_file(&plan, immediate_acceptance_plan());
+    let ctx = create_context(temp.path());
+    ctx.runtime_store
+        .upsert_plan_state(codex_orchestrator_mcp::runtime_store::PlanStateUpsertInput {
+            plan_id: "immediate-acceptance-plan".to_string(),
+            plan_path: plan.to_str().unwrap().to_string(),
+            spec_path: None,
+            current_wave: Some("Wave Accept".to_string()),
+            active_task_id: Some("A1".to_string()),
+            last_review_result: None,
+        })
+        .unwrap();
+    ctx.runtime_store
+        .upsert_task_state(TaskStateUpsertInput {
+            plan_id: "immediate-acceptance-plan".to_string(),
+            task_id: "A1".to_string(),
+            category_id: "backend-impl".to_string(),
+            status: "running_quality_review".to_string(),
+            active_step_label: None,
+            assigned_role: Some("backend-developer".to_string()),
+            agent_id: Some("agent-impl".to_string()),
+            write_lease_id: None,
+            spec_review_status: "pass".to_string(),
+            quality_review_status: "pending".to_string(),
+            retry_count: 0,
+            blocker_type: None,
+            blocker_message: None,
+        })
+        .unwrap();
+
+    let review_payload = structured(
+        handle_tool_call(
+            &ctx,
+            "orchestrator_record_review",
+            &tool_args(json!({
+                "planPath": plan,
+                "taskId": "A1",
+                "reviewType": "quality",
+                "result": "pass",
+                "reviewerAgentId": "agent-review"
+            })),
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(review_payload["task_status"], "accepted");
+    assert_eq!(review_payload["accepted"], true);
+    assert_eq!(review_payload["top_level_todo_checked"], true);
+    assert_eq!(review_payload["next_active_task_id"], "B1");
+
+    let todo_payload = structured(
+        handle_tool_call(
+            &ctx,
+            "orchestrator_export_codex_todo",
+            &tool_args(json!({ "planPath": plan })),
+        )
+        .unwrap(),
+    );
+    let items = todo_payload["items"].as_array().unwrap();
+    assert_eq!(todo_payload["active_task_id"], "B1");
+    assert_eq!(items[0]["status"], "completed");
+    assert_eq!(items[1]["status"], "in_progress");
+
+    let plan_state_payload = structured(
+        handle_tool_call(
+            &ctx,
+            "orchestrator_read_plan_state",
+            &tool_args(json!({ "planPath": plan })),
+        )
+        .unwrap(),
+    );
+    assert_eq!(plan_state_payload["executionStatus"]["activeTask"], "B1");
 }
 
 #[test]

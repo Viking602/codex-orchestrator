@@ -41,7 +41,8 @@ The current runtime uses a standalone Rust stdio MCP server that speaks the mini
 - `complete_step` auto-advances the current-step pointer to the next unchecked step when available.
 - `next_action` and `watchdog_tick` expose step-sync guidance so parents can repair drift instead of batching late step updates.
 - `export_codex_todo` projects file-backed plan state into a mirror-ready Codex native todo snapshot instead of creating a second source of truth.
-- `question_gate` rejects optional expansion questions by default.
+- `question_gate` rejects optional expansion questions and redundant direction-confirmation questions by default.
+- `record_review` immediately accepts a terminal-ready task when the quality-pass write closes all gates and steps.
 - `assess_subagent_completion` prevents child self-report from being treated as task completion.
 - `completion_guard` fails closed before parent completion.
 
@@ -75,6 +76,12 @@ The current runtime uses a standalone Rust stdio MCP server that speaks the mini
 
 - `auto_advanced`
 - returns the updated step-guidance fields after the checked step is recorded
+
+### `orchestrator_record_review`
+
+- `accepted`
+- `top_level_todo_checked`
+- `next_active_task_id`
 
 ### `orchestrator_export_codex_todo`
 

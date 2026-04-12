@@ -1,7 +1,7 @@
 {
   "name": "codex-orchestrator",
   "version": "0.1.0",
-  "description": "Default repository workflow plugin for discovery, design approval, file-backed planning, execution tracking, review gates, and document sync.",
+  "description": "Default repository workflow plugin for discovery, direction-aware planning, file-backed execution tracking, review gates, and document sync.",
   "author": {
     "name": "Viking",
     "email": "chen17090314747@gmail.com",
@@ -21,8 +21,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Codex Orchestrator",
-    "shortDescription": "Default repository workflow for discovery, design approval, planning, execution, and review gates",
-    "longDescription": "Codex Orchestrator makes discovery, requirements clarification, design specs, implementation plans, category routing, runtime state, review gates, and plan synchronization first-class workflow artifacts so repository work defaults to a durable, file-backed execution flow instead of ad-hoc chat state or a separate generic process stack.",
+    "shortDescription": "Default repository workflow for discovery, direction-aware planning, execution, and review gates",
+    "longDescription": "Codex Orchestrator makes discovery, requirements clarification, direction-aware specs and implementation plans, category routing, runtime state, review gates, and plan synchronization first-class workflow artifacts so repository work defaults to a durable, file-backed execution flow without redundant start-confirmation turns.",
     "developerName": "Viking",
     "category": "Coding",
     "capabilities": [
@@ -35,8 +35,8 @@
     "termsOfServiceURL": "https://github.com/Viking602/codex-orchestrator/blob/master/docs/product/terms-of-service.md",
     "defaultPrompt": [
       "Use Codex Orchestrator as the default workflow for this repository task.",
-      "Explore context, clarify requirements one question at a time, compare approaches, and get design approval.",
-      "Turn the approved request into a spec and active plan, track step progress, route by category, and enforce review gates."
+      "Clarify only hard blockers. If the user already chose direction, do not ask again to start.",
+      "Write the spec and active plan, then execute by category with delegated subagents and review gates."
     ],
     "brandColor": "#1C4D8C",
     "composerIcon": "./assets/icon-small.svg",

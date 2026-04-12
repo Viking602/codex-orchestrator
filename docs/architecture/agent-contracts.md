@@ -48,6 +48,7 @@ The reviewer must not:
 - Child execution substeps must be reported one-by-one.
 - Parent plan synchronization must happen after each completed step.
 - End-of-task batch completion is invalid and should fail review.
+- When a terminal review pass closes a task, the parent must accept that top-level task in the same control-plane pass instead of deferring checkbox movement.
 - When native `update_plan` is available, the parent should mirror the active implementation plan into that surface instead of creating a separate prose todo list.
 
 ## Native Todo Mirror Rule

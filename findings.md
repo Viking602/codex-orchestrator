@@ -77,3 +77,12 @@
 - The remaining root TypeScript contract tests were pure structure checks, so they belonged more naturally in Rust repo-contract tests than in a separate Node runner.
 - Bundled agent scopes and search priorities are part of the active repository surface; leaving them pointed at deleted `src/**` or `tests/**` paths is real routing drift, not documentation trivia.
 - Once the active repo-contract suite is in Rust, keeping Node-based validation commands in current docs becomes stale operational debt.
+- The subagent reluctance gap was not in `orchestrator_next_action`; it was at entry classification, where repository-inspection prompts still fell through to `backend-impl`.
+- English-only inspection keywords were too narrow for real user phrasing such as `check this codebase` and Chinese prompts such as `检查这个项目的代码库`.
+- The durable fix is to route repository-inspection language into the existing `research` category and reinforce that the first-pass evidence gatherer should be `search-specialist`, not the parent.
+- The redundant re-confirmation problem was not a missing blocker check; it came from workflow text that treated approval as a broad default even after the user had already chosen a workable direction.
+- Optional-expansion gating alone was insufficient because the parent still had no explicit non-question category for `should I proceed with the direction you already gave me`.
+- The durable fix is to encode `direction_confirmation` as a non-question and narrow comparison and approval to genuinely open or conflicting direction choices.
+- The native todo jumpiness was not a frontend-only problem; it came from leaving a gap between terminal review pass and top-level acceptance, so the first unchecked top-level task stayed `in_progress` too long.
+- A mirror that only projects top-level TODO items can only move when the plan checkbox moves, so late acceptance writes inevitably look like sudden bulk completion.
+- The durable fix is to close top-level acceptance in the same control-plane pass as the terminal quality-review write and advance `Active task` immediately.

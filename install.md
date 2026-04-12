@@ -59,6 +59,7 @@ Repository source inputs:
 No repository-owned shell installer is the supported path anymore. Codex should perform this reconciliation directly.
 
 The direct reconcile flow must close the MCP gap too: a fresh session should not stop at bundled skill discovery while leaving `orchestrator_*` unavailable.
+The managed workflow guidance must also preserve immediate top-level acceptance so native todo progress does not stay pinned on the first task until a late sweep.
 
 ## Managed Global AGENTS Block
 
@@ -71,9 +72,12 @@ Keep this block present and up to date in the active global `AGENTS` file while 
 - When `codex-orchestrator` is installed and enabled, use it as the default workflow for repository tasks unless the user explicitly asks for a different workflow.
 - `codex-orchestrator` absorbs repository brainstorming and discovery, so normal repository tasks must not enter through `using-superpowers` or standalone `brainstorming`.
 - Start with the bundled `codex-orchestrator` skill for discovery, requirements clarification, design work, feature work, bug fixes, refactors, debugging, docs changes, architecture work, and other multi-step repository tasks.
-- Explore context first, ask clarifying questions one at a time, compare 2-3 approaches with a recommendation, and get design approval before writing the implementation plan.
+- Treat repository inspection, codebase-check, repo-audit, and read-only repo-understanding requests as `research` work that should dispatch `search-specialist` before the parent keeps that work local.
+- Explore context first, ask clarifying questions one at a time only when something material is missing, compare 2-3 approaches only when the direction is still open, and ask for approval before the implementation plan only when the proposed direction materially changes the request.
+- If the user already supplied a workable direction and no hard blocker exists, do not ask a second confirmation question; summarize assumptions, write the spec and plan, and continue.
 - Use the plugin MCP tools to resolve category, read the active plan, export the native Codex todo mirror, record step progress, and enforce review and completion gates.
 - When native `update_plan` is available, mirror the active implementation plan into that surface instead of maintaining a separate chat todo.
+- When a terminal review pass closes a task, accept the top-level task in the same control-plane pass so the next top-level item becomes visible immediately.
 - Generic process skills are fallback helpers after `codex-orchestrator` takes control or when the plugin is unavailable.
 - Follow stronger repository-local `AGENTS.md` guidance when a repository provides it.
 <!-- codex-orchestrator-default-workflow:end -->
