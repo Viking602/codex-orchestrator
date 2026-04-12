@@ -15,8 +15,10 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 ## Default Workflow
 
 - For repository work in this repo, `codex-orchestrator` is the default workflow.
+- `codex-orchestrator` absorbs the repository brainstorming stage, so normal repo tasks must not enter through `using-superpowers` or standalone `brainstorming`.
 - Invoke the installed `codex-orchestrator` bundled skill before generic process skills when doing feature work, bug fixes, refactors, debugging, docs changes, architecture work, or other multi-step repo tasks.
 - Treat generic process skills as subordinate helpers after orchestration begins or when the plugin is unavailable.
+- During discovery and design, explore context first, ask clarifying questions one at a time, compare 2-3 approaches with a recommendation, and get design approval before writing the implementation plan.
 - Start by reading the active plan when one exists, then keep plan status and routing docs synchronized throughout execution.
 
 ## Execution Rules
@@ -55,6 +57,11 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - [Incremental step synchronization design spec](docs/specs/2026-04-11-codex-orchestrator-incremental-step-sync-design.md)
 - [Native Codex todo mirroring design spec](docs/specs/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-design.md)
 - [Codex-guided install design spec](docs/specs/2026-04-11-codex-orchestrator-codex-guided-install-design.md)
+- [MCP bootstrap install design spec](docs/specs/2026-04-12-codex-orchestrator-mcp-bootstrap-install-design.md)
+- [Rust MCP CLI design spec](docs/specs/2026-04-12-codex-orchestrator-rust-mcp-cli-design.md)
+- [TypeScript compatibility removal design spec](docs/specs/2026-04-12-codex-orchestrator-typescript-compat-removal-design.md)
+- [Full TypeScript removal design spec](docs/specs/2026-04-12-codex-orchestrator-full-typescript-removal-design.md)
+- [Brainstorming integration design spec](docs/specs/2026-04-12-codex-orchestrator-brainstorming-integration-design.md)
 - [Install guide design spec](docs/specs/2026-04-11-codex-orchestrator-install-guide-design.md)
 - [Completed plan auto-archive design spec](docs/specs/2026-04-11-codex-orchestrator-plan-archive-design.md)
 - [Relative doc-path policy design spec](docs/specs/2026-04-11-codex-orchestrator-doc-relative-path-policy-design.md)
@@ -70,6 +77,11 @@ This repository hosts the Codex orchestrator plugin that replaces the core engin
 - [Incremental step synchronization completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-incremental-step-sync-implementation.md)
 - [Native Codex todo mirroring completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-native-codex-todo-mirroring-implementation.md)
 - [Codex-guided install completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-codex-guided-install-implementation.md)
+- [MCP bootstrap completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-mcp-bootstrap-install-implementation.md)
+- [Rust MCP CLI completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-rust-mcp-cli-implementation.md)
+- [TypeScript compatibility removal completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-typescript-compat-removal-implementation.md)
+- [Full TypeScript removal completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-full-typescript-removal-implementation.md)
+- [Brainstorming integration completed plan](docs/plans/completed/2026-04-12-codex-orchestrator-brainstorming-integration-implementation.md)
 - [Install guide completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-install-guide-implementation.md)
 - [Completed plan auto-archive implementation plan](docs/plans/completed/2026-04-11-codex-orchestrator-plan-archive-implementation.md)
 - [Relative doc-path policy completed plan](docs/plans/completed/2026-04-11-codex-orchestrator-doc-relative-path-policy-implementation.md)

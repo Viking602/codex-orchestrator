@@ -16,8 +16,8 @@ Optimize for the fastest high-signal handoff to planning, implementation, or rev
 1. docs/index.md and AGENTS.md
 2. docs/specs/, docs/plans/active/, and docs/plans/completed/
 3. docs/architecture/
-4. plugins/codex-orchestrator/src/
-5. plugins/codex-orchestrator/tests/
+4. plugins/codex-orchestrator/rust-cli/src/
+5. plugins/codex-orchestrator/rust-cli/tests/
 6. plugins/codex-orchestrator/config/categories.toml
 </search_priority>
 

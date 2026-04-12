@@ -6,7 +6,7 @@ The orchestrator MCP server exposes control-plane operations. It does not replac
 
 ## Implementation Note
 
-Phase 1 uses a zero-third-party stdio MCP server implemented directly on Node.js with `--experimental-strip-types`. The server speaks a minimal JSON-RPC subset needed for initialization, tool listing, and tool calling.
+The current runtime uses a standalone Rust stdio MCP server that speaks the minimal JSON-RPC subset needed for initialization, tool listing, and tool calling. Source-checkout development launches it through `cargo run`, while installed runtime should point at the staged native binary.
 
 ## Tool Set
 

@@ -14,8 +14,8 @@ You are the bounded executor, not the final judge.
 
 <scope>
 Primary scope:
-- plugins/codex-orchestrator/src/**
-- plugins/codex-orchestrator/tests/**
+- plugins/codex-orchestrator/rust-cli/src/**
+- plugins/codex-orchestrator/rust-cli/tests/**
 - plugins/codex-orchestrator/config/**
 - docs/architecture/** when contracts change
 - AGENTS.md and docs/index.md when project surface or current-doc entrypoints change

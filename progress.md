@@ -75,3 +75,41 @@
 - Added regression coverage for active-task mirroring, pending/completed task ordering, and final-acceptance projection into native todo output.
 - Updated workflow docs and installer-managed default guidance so parent agents mirror the active plan into native `update_plan` when available and stop maintaining separate chat todos.
 - Verified the full plugin test suite passes with the new native-todo mirroring coverage and confirmed the export tool projects the repository's active plan into a single in-progress Codex todo item with current-step detail.
+- Created the Codex-guided install design spec and active implementation plan.
+- Replaced the old installer-script regression suite with guide-contract coverage that enforces direct Codex install/update guidance, current routing-doc behavior, and shell-installer removal.
+- Rewrote `install.md` and `README.md` so installation and updates now route through a Codex-executed reconcile flow instead of a repository-owned wrapper script.
+- Removed `scripts/install-codex-orchestrator.sh` from the active repository surface and renamed the guide regression suite to `tests/install-guide.test.ts`.
+- Verified the Codex-guided install contract, archived the completed implementation plan into `docs/plans/completed/`, and updated routing docs to reflect that there is no open active plan.
+- Re-ran both the root guide-contract suite and the plugin test suite after archival; both passed and `docs/plans/active/` is now empty.
+
+## 2026-04-12
+
+- Created the MCP bootstrap install design spec and implementation plan after reproducing a half-installed state where the bundled skill loaded but `orchestrator_*` tools were still absent from the callable registry.
+- Updated the bundled plugin MCP declaration to include an explicit `cwd` and startup timeout so the server contract is self-describing.
+- Rewrote the install contract so Codex-guided install now reconciles a managed `mcp_servers.codex-orchestrator` block in `~/.codex/config.toml` against the installed cache `src/server.ts` path.
+- Updated the README, install guide, routing docs, and regression suite so MCP visibility is treated as part of installation correctness instead of an optional post-install detail.
+- Applied the local MCP bootstrap in the Windows Codex home and verified a fresh non-repo `codex exec` session now reports `orchestrator_resolve_category` as present in the callable tool registry.
+- Created the Rust MCP CLI design spec and implementation plan so the active runtime could move off TypeScript-on-Node without changing the orchestration contract.
+- Added `plugins/codex-orchestrator/rust-cli/`, ported the category registry, plan document, runtime store, doc-drift checks, and `orchestrator_*` tool handlers into the new Rust crate.
+- Switched source-checkout development runtime from `node --experimental-strip-types` to `cargo run --manifest-path ./rust-cli/Cargo.toml`.
+- Rewrote the install guide and MCP contract docs so installed Codex sessions build and launch a staged native binary under the installed plugin cache instead of `src/server.ts`.
+- Fixed native installed-runtime plugin-root discovery so the staged executable can find plugin-owned config and docs even when launched from a non-repository working directory.
+- Rebuilt and restaged the local installed plugin to the native executable bootstrap path and updated managed user config to point at that binary.
+- Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml`, `node --experimental-strip-types --test tests/install-guide.test.ts`, direct stdio JSON-RPC smoke checks, fresh repo-root `codex exec`, and fresh non-repo `codex exec` all pass with the Rust runtime.
+- Created the TypeScript compatibility-removal design spec and implementation plan so the dead plugin-local runtime surface could be deleted under an explicit contract.
+- Added repo-level contract tests for plugin manifest metadata, bundled-agent inventory alignment, docs path hygiene, and the removed TypeScript runtime surface.
+- Added Rust integration coverage for category resolution, Codex todo export, question gate behavior, completion assessment, and completion guard behavior.
+- Deleted `plugins/codex-orchestrator/src/**`, removed plugin-local TypeScript runtime tests, removed `plugins/codex-orchestrator/tsconfig.json`, and simplified the plugin package scripts to Rust-only commands.
+- Updated the README and install guide so the active plugin surface now describes the Rust-only runtime plus repo-level test entrypoints instead of the deleted TypeScript compatibility layer.
+- Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` and `node --experimental-strip-types --test tests/typescript-compat-removal.test.ts tests/plugin-manifest.test.ts tests/docs-relative-path-policy.test.ts tests/agent-bundle.test.ts` pass after the deletion.
+- Created the brainstorming-integration design spec and implementation plan so `codex-orchestrator` can absorb repository discovery and design behavior instead of yielding the entry route to global superpowers skills.
+- Updated the bundled orchestrator skill to own context exploration, one-question-at-a-time clarification, 2-3 approach comparison, design approval, and spec self-review before planning and execution.
+- Updated plugin metadata, repository `AGENTS.md`, and the install-managed global `AGENTS` block so `codex-orchestrator` now explicitly blocks `using-superpowers` and standalone `brainstorming` as the normal repository entry workflow.
+- Added `tests/brainstorming-integration.test.ts` to keep the integrated discovery/design contract durable across skill text, metadata, and routing docs.
+- Synced the installed cache skill, installed plugin manifest, and active global `AGENTS` block in the local Windows Codex home to the new brainstorming-integrated workflow.
+- Verified `node --experimental-strip-types --test tests/*.test.ts` and `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` still pass after the workflow integration.
+- Trimmed the plugin manifest `interface.defaultPrompt` array to three prompts under the host length limit so Codex stops discarding this plugin's own routing hints.
+- Created the full TypeScript removal design spec and implementation plan so the remaining root `tests/*.test.ts` surface could be replaced instead of left as a Node-only residue.
+- Added `plugins/codex-orchestrator/rust-cli/tests/repo_contracts.rs` to port the remaining bundle, manifest, brainstorming, markdown-path, and no-TypeScript contract checks into Rust.
+- Deleted the last root TypeScript contract tests, updated active docs and bundled-agent scopes to the Rust-only surface, and removed `typescript-pro` from the live `backend-impl` allow-list.
+- Verified `cargo test --manifest-path plugins/codex-orchestrator/rust-cli/Cargo.toml` passes and `rg --files -g "*.ts" -g "*.tsx"` returns no files.

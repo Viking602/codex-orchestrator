@@ -58,3 +58,22 @@
 - The repository-owned shell installer had become the wrong abstraction for this project; the supported install/update interface now needs to be a Codex-readable reconcile guide, not another wrapper layer.
 - Install and update are the same operation here: reconcile plugin-owned targets, refresh managed guidance, verify, and restart Codex if external state changed.
 - The useful regression boundary is the guide contract and active repository surface, not the old shell wrapper's internal behavior.
+- Bundled skill discovery is not proof that plugin MCP tools are callable; Codex can read the skill text while still omitting `orchestrator_*` from the runtime tool registry.
+- For this plugin, a stable install contract needs an explicit `mcp_servers.codex-orchestrator` bootstrap in user config that points at the installed cache server path.
+- Fresh non-repo `codex exec` validation is the right acceptance check for this class of install bug because it rebuilds the tool registry outside the current chat and repository guidance.
+- The bundled `.mcp.json` should still declare `cwd` and startup timeout explicitly even when the install flow also bootstraps a global MCP entry, because that keeps the plugin-owned server contract self-describing.
+- Source-checkout development runtime and installed Codex runtime have different needs: Cargo is appropriate for repository-local iteration, but installed sessions should launch a staged native binary instead of rebuilding on every start.
+- A staged native executable cannot depend on the caller working directory for plugin-root discovery; resolving the root from `current_exe()` ancestors is necessary for fresh non-repo sessions.
+- Existing watchdog semantics include signed millisecond thresholds, so the Rust runtime must preserve negative-threshold handling instead of collapsing everything to whole positive seconds.
+- Installed cache refresh should preserve runtime-owned state files when they are locked by the host, because the durable fix is to replace plugin-owned files without assuming exclusive access to the state directory.
+- PowerShell 5.1 does not expose the same no-BOM UTF-8 helpers as newer shells, so Windows config writes may require an explicit .NET `UTF8Encoding(false)` path to avoid introducing invalid TOML/BOM drift.
+- Once the Rust CLI is the only supported runtime path, keeping the old TypeScript implementation in-tree becomes harmful because it creates a false fallback surface and keeps test scaffolding coupled to dead code.
+- After deleting the plugin-local TypeScript runtime, repo-level contract tests are a better fit for manifest, docs, and bundled-agent assertions than keeping a plugin-scoped TypeScript project just for metadata checks.
+- Empty compatibility directories still count as live surface for structural drift tests, so removal work needs to delete the directories themselves rather than only deleting the files inside them.
+- The real reason superpowers still captures some repository sessions is not MCP availability but entry-routing priority: `using-superpowers` claims every new conversation unless stronger `AGENTS.md` guidance explicitly blocks it.
+- The useful repository subset of brainstorming is workflow text, not a separate runtime surface: context exploration, one-question-at-a-time clarification, approach comparison, design approval, and spec review belong inside `codex-orchestrator`.
+- Durable routing changes need to update both repository-local guidance and the installer-managed global `AGENTS` block, or fresh sessions outside the current chat will keep drifting back to the global superpowers entry skill.
+- Plugin manifest starter prompts have host-side limits: keep `interface.defaultPrompt` to at most three prompts and under 128 characters each or Codex will silently ignore them.
+- The remaining root TypeScript contract tests were pure structure checks, so they belonged more naturally in Rust repo-contract tests than in a separate Node runner.
+- Bundled agent scopes and search priorities are part of the active repository surface; leaving them pointed at deleted `src/**` or `tests/**` paths is real routing drift, not documentation trivia.
+- Once the active repo-contract suite is in Rust, keeping Node-based validation commands in current docs becomes stale operational debt.

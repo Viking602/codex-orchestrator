@@ -41,7 +41,7 @@ Two extra workflow roles are bundled because they materially improve parent beha
 ## Deliberate Exclusions
 
 - `mcp-developer` is not bundled because this is a coding-direction plugin and should not make a niche MCP specialist its default implementation persona.
-- `typescript-pro` is not the default bundled implementation role because the plugin should stay generic instead of binding the happy path to one language-specific persona.
+- Language-specific implementation personas are not the default bundled path because the plugin should stay generic instead of binding the happy path to one stack-specialist role.
 - `harness-generator` is not bundled by default because the plugin already has a stronger generic implementation owner: `backend-developer`.
 - `code-reviewer` is not bundled by default because the review happy path already lands on `harness-evaluator`. Adding both as bundled defaults would create overlapping review surfaces without improving determinism.
 
